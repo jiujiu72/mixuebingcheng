@@ -21,13 +21,28 @@ const routes = [
   {
     path: '/home',
     name: 'Home',
-    component: Home
+    component: Home,
+    meta: {
+      requiresAuth: true
+    }
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// 路由守卫
+router.beforeEach((to, from, next) => {
+  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const user = localStorage.getItem('user')
+  
+  if (requiresAuth && !user) {
+    next('/login')
+  } else {
+    next()
+  }
 })
 
 export default router
