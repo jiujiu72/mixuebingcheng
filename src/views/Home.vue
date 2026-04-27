@@ -200,66 +200,89 @@
 
     <el-drawer
       v-model="showMobileCart"
-      title="购物车"
       direction="btt"
-      :size="60"
+      :size="'80%'"
       class="mobile-cart-drawer"
+      :with-header="false"
     >
+      <div class="mobile-cart-header">
+        <div class="mobile-cart-title">
+          <el-icon><ShoppingCart /></el-icon>
+          <span>购物车</span>
+          <span v-if="totalQuantity > 0" class="cart-badge">{{ totalQuantity }}</span>
+        </div>
+        <el-button
+          v-if="cartItems.length > 0"
+          type="danger"
+          text
+          size="small"
+          @click="clearCart"
+        >
+          清空
+        </el-button>
+      </div>
+
       <div v-if="cartItems.length === 0" class="cart-empty">
         <div class="empty-icon">
-          <el-icon :size="48"><ShoppingCart /></el-icon>
+          <el-icon :size="64"><ShoppingCart /></el-icon>
         </div>
         <p>购物车是空的</p>
+        <span>快去挑选美食吧~</span>
       </div>
 
-      <div v-else class="cart-items mobile-cart-items">
-        <div
-          v-for="item in cartItems"
-          :key="item.id"
-          class="cart-item"
-        >
-          <div class="cart-item-info">
-            <h4 class="cart-item-name">{{ item.name }}</h4>
-            <span class="cart-item-price">¥{{ item.price }}</span>
+      <div v-else class="mobile-cart-content">
+        <div class="cart-items mobile-cart-items">
+          <div
+            v-for="item in cartItems"
+            :key="item.id"
+            class="cart-item"
+          >
+            <div class="cart-item-info">
+              <h4 class="cart-item-name">{{ item.name }}</h4>
+              <span class="cart-item-price">¥{{ item.price }}</span>
+            </div>
+            
+            <div class="cart-item-actions">
+              <el-button
+                size="small"
+                circle
+                @click="removeFromCart(item)"
+              >
+                <el-icon><Minus /></el-icon>
+              </el-button>
+              <span class="cart-item-quantity">{{ item.quantity }}</span>
+              <el-button
+                size="small"
+                circle
+                type="primary"
+                @click="addToCart(item)"
+              >
+                <el-icon><Plus /></el-icon>
+              </el-button>
+            </div>
+          </div>
+        </div>
+
+        <div class="cart-footer mobile-cart-footer">
+          <div class="cart-summary">
+            <div class="summary-row">
+              <span>共 {{ totalQuantity }} 件商品</span>
+            </div>
+            <div class="summary-row total">
+              <span>合计</span>
+              <span class="total-price">¥{{ totalPrice }}</span>
+            </div>
           </div>
           
-          <div class="cart-item-actions">
-            <el-button
-              size="small"
-              circle
-              @click="removeFromCart(item)"
-            >
-              <el-icon><Minus /></el-icon>
-            </el-button>
-            <span class="cart-item-quantity">{{ item.quantity }}</span>
-            <el-button
-              size="small"
-              circle
-              type="primary"
-              @click="addToCart(item)"
-            >
-              <el-icon><Plus /></el-icon>
-            </el-button>
-          </div>
+          <el-button
+            type="primary"
+            size="large"
+            class="submit-button"
+            @click="submitOrder"
+          >
+            提交订单
+          </el-button>
         </div>
-      </div>
-
-      <div v-if="cartItems.length > 0" class="cart-footer">
-        <div class="cart-summary">
-          <div class="summary-row total">
-            <span>合计</span>
-            <span class="total-price">¥{{ totalPrice }}</span>
-          </div>
-        </div>
-        
-        <el-button
-          type="primary"
-          size="large"
-          class="submit-button"
-          @click="submitOrder"
-        >
-          提交订单
-        </el-button>
       </div>
     </el-drawer>
   </div>
@@ -984,7 +1007,6 @@ const handleLogout = () => {
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
   cursor: pointer;
   z-index: 1000;
-  display: flex;
   align-items: center;
   gap: 12px;
 }
@@ -1086,15 +1108,66 @@ const handleLogout = () => {
   }
 }
 
-.mobile-cart-drawer {
-  .el-drawer__body {
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-  }
+.mobile-cart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.mobile-cart-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.cart-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.mobile-cart-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .mobile-cart-items {
-  max-height: 40vh;
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  min-height: 0;
+}
+
+.mobile-cart-footer {
+  flex-shrink: 0;
+  padding: 16px 20px 20px;
+  border-top: 1px solid #f1f5f9;
+  background: white;
+}
+
+.mobile-cart-footer .cart-summary {
+  margin-bottom: 12px;
+}
+
+.mobile-cart-footer .summary-row {
+  margin-bottom: 4px;
+}
+
+.mobile-cart-footer .submit-button {
+  margin-top: 4px;
 }
 </style>
