@@ -83,6 +83,29 @@ body {
   border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
 }
 
+.el-drawer.mobile-cart-drawer {
+  height: 80vh !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.el-drawer.mobile-cart-drawer .el-drawer__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.el-drawer.mobile-cart-drawer .el-drawer__header {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
 .el-message {
   border-radius: var(--radius-lg);
   border: none;
