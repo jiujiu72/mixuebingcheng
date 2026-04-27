@@ -86,19 +86,18 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, from) => {
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
   const user = localStorage.getItem('user')
   const admin = localStorage.getItem('admin')
 
   if (requiresAuth && !user) {
-    next('/login')
+    return '/login'
   } else if (requiresAdmin && !admin) {
-    next('/admin-login')
-  } else {
-    next()
+    return '/admin-login'
   }
+  return true
 })
 
 export default router

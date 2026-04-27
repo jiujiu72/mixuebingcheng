@@ -115,7 +115,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { Document, UserFilled, Food, Avatar } from '@element-plus/icons-vue'
-import { mockOrders, mockUsers, mockFoods, mockEmployees, orderStatusMap } from '../../data/mockData'
+import { mockOrders, mockUsers, mockFoods, mockEmployees, orderStatusMap } from '../../../data/mockData'
 
 const stats = ref({
   orderCount: 0,
