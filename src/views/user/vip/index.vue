@@ -164,10 +164,13 @@
         </div>
         <div class="upgrade-options">
           <div 
-            v-for="option in upgradeOptions" 
+            v-for="option in availableUpgradeOptions" 
             :key="option.id"
             class="upgrade-option"
-            :class="{ 'recommended': option.recommended }"
+            :class="{ 
+              'recommended': option.recommended,
+              'disabled': !option.canPurchase 
+            }"
           >
             <div class="option-badge" v-if="option.recommended">推荐</div>
             <div class="option-name">{{ option.name }}</div>
@@ -184,12 +187,17 @@
               </div>
             </div>
             <el-button 
-              type="primary" 
+              :type="option.canPurchase ? 'primary' : 'info'" 
               class="upgrade-btn"
+              :disabled="!option.canPurchase"
               @click="handleUpgrade(option)"
             >
-              立即开通
+              {{ option.canPurchase ? '立即开通' : '不可购买' }}
             </el-button>
+            <div v-if="!option.canPurchase" class="unavailable-reason">
+              <el-icon><Warning /></el-icon>
+              <span>{{ option.unavailableReason }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -201,7 +209,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Check, Clock } from '@element-plus/icons-vue'
+import { ArrowLeft, Check, Clock, Warning } from '@element-plus/icons-vue'
 import { 
   mockVipLevels, 
   mockUserVips, 
@@ -369,6 +377,45 @@ const upgradeOptions = ref([
   }
 ])
 
+const currentVipLevelNum = computed(() => {
+  return currentVip.value?.vipInfo?.level || 0
+})
+
+const getUpgradeOptionStatus = (option) => {
+  const targetLevel = option.targetLevel
+  const currentLevel = currentVipLevelNum.value
+  
+  if (targetLevel < currentLevel) {
+    return {
+      canPurchase: false,
+      reason: `您当前已是${currentVip.value?.vipInfo?.name || '高级会员'}，等级更高，无需购买此会员`
+    }
+  }
+  
+  if (targetLevel === currentLevel) {
+    return {
+      canPurchase: false,
+      reason: `您已是${currentVip.value?.vipInfo?.name}，请勿重复购买同级会员`
+    }
+  }
+  
+  return {
+    canPurchase: true,
+    reason: ''
+  }
+}
+
+const availableUpgradeOptions = computed(() => {
+  return upgradeOptions.value.map(option => {
+    const status = getUpgradeOptionStatus(option)
+    return {
+      ...option,
+      canPurchase: status.canPurchase,
+      unavailableReason: status.reason
+    }
+  })
+})
+
 const saveVipToLocalStorage = (vipInfo) => {
   const vipData = {
     ...vipInfo,
@@ -405,7 +452,14 @@ const getTargetVipLevel = (targetLevelNum) => {
 }
 
 const handleUpgrade = (option) => {
+  const status = getUpgradeOptionStatus(option)
+  if (!status.canPurchase) {
+    ElMessage.warning(status.reason)
+    return
+  }
+
   const targetLevel = getTargetVipLevel(option.targetLevel)
+  const currentLevel = currentVipLevelNum.value
   
   let message = `确定要开通"${option.name}"吗？\n\n`
   message += `价格：¥${option.price}\n`
@@ -415,6 +469,10 @@ const handleUpgrade = (option) => {
   message += `有效期：${option.duration}\n`
   message += `会员等级：${targetLevel.name}\n`
   message += `专属折扣：${targetLevel.discount * 10}折\n\n`
+  if (currentLevel > 0) {
+    message += `当前会员等级：${currentVip.value?.vipInfo?.name}\n`
+    message += `升级后会员等级：${targetLevel.name}\n`
+  }
   message += `开通后将立即享受对应会员权益。`
 
   ElMessageBox.confirm(
@@ -445,8 +503,7 @@ const handleUpgrade = (option) => {
         mockUserVips.push(userVip)
       }
       
-      const currentMaxLevel = Math.max(userVip.level || 0, option.targetLevel)
-      const finalLevel = vipLevels.value.find(l => l.level === currentMaxLevel) || targetLevel
+      const finalLevel = targetLevel
       
       userVip.vipLevelId = finalLevel.id
       userVip.vipName = finalLevel.name
@@ -461,9 +518,9 @@ const handleUpgrade = (option) => {
       loading.value = false
       
       ElMessage({
-        message: `开通成功！您已升级为${finalLevel.name}`,
+        message: `开通成功！您已升级为${finalLevel.name}，会员权益立即生效`,
         type: 'success',
-        duration: 3000
+        duration: 4000
       })
       
     }, 800)
@@ -907,6 +964,43 @@ onMounted(() => {
 .upgrade-option.recommended {
   border-color: #f59e0b;
   background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.upgrade-option.disabled {
+  opacity: 0.6;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  pointer-events: none;
+}
+
+.upgrade-option.disabled .price-value,
+.upgrade-option.disabled .price-symbol {
+  color: #94a3b8;
+}
+
+.upgrade-option.disabled .option-benefits .benefit-item {
+  color: #94a3b8;
+}
+
+.upgrade-option.disabled .option-benefits .benefit-item .el-icon {
+  color: #94a3b8;
+}
+
+.unavailable-reason {
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: #fef3c7;
+  border-radius: 8px;
+  font-size: 12px;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+.unavailable-reason .el-icon {
+  flex-shrink: 0;
 }
 
 .option-badge {
