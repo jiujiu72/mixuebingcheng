@@ -63,6 +63,13 @@
             </template>
             <el-menu-item index="/admin/employee">员工列表</el-menu-item>
           </el-sub-menu>
+          <el-sub-menu index="delivery">
+            <template #title>
+              <el-icon><Van /></el-icon>
+              <span>骑手管理</span>
+            </template>
+            <el-menu-item index="/admin/delivery">骑手列表</el-menu-item>
+          </el-sub-menu>
           <el-sub-menu index="order">
             <template #title>
               <el-icon><Document /></el-icon>
@@ -84,7 +91,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
-import { User, SwitchButton, HomeFilled, UserFilled, FolderOpened, Food, Avatar, Document } from '@element-plus/icons-vue'
+import { User, SwitchButton, HomeFilled, UserFilled, FolderOpened, Food, Avatar, Document, Van } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()

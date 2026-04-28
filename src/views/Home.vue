@@ -16,6 +16,11 @@
       </div>
       
       <div class="header-right">
+        <div class="address-selector" @click="showAddressDialog = true">
+          <el-icon><Location /></el-icon>
+          <span class="address-text">{{ selectedAddress ? selectedAddress.address.substring(0, 15) + '...' : '请选择收货地址' }}</span>
+          <el-icon><ArrowDown /></el-icon>
+        </div>
         <div class="search-box">
           <el-input
             v-model="searchKeyword"
@@ -30,10 +35,34 @@
         </div>
         
         <div class="header-actions">
-          <el-button type="primary" text @click="handleLogout">
-            <el-icon><SwitchButton /></el-icon>
-            退出
-          </el-button>
+          <el-dropdown @command="handleDropdownCommand">
+            <el-button type="primary" text>
+              <el-icon><User /></el-icon>
+              我的
+              <el-icon><ArrowDown /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="orders">
+                  <el-icon><Document /></el-icon>
+                  我的订单
+                </el-dropdown-item>
+                <el-dropdown-item command="address">
+                  <el-icon><Location /></el-icon>
+                  地址管理
+                </el-dropdown-item>
+                <el-dropdown-item command="notifications">
+                  <el-icon><Bell /></el-icon>
+                  消息通知
+                  <el-badge v-if="unreadCount > 0" :value="unreadCount" :offset="[10, 0]" class="dropdown-badge" />
+                </el-dropdown-item>
+                <el-dropdown-item divided command="logout">
+                  <el-icon><SwitchButton /></el-icon>
+                  退出登录
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
     </header>
@@ -198,6 +227,57 @@
       <span class="mobile-cart-total">¥{{ totalPrice }}</span>
     </div>
 
+    <el-dialog
+      v-model="showAddressDialog"
+      title="选择收货地址"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <div class="address-dialog-content">
+        <div v-if="userAddresses.length === 0" class="empty-address">
+          <el-icon :size="64" color="#cbd5e1"><Location /></el-icon>
+          <p>暂无收货地址</p>
+          <el-button type="primary" @click="goToAddressManage">
+            <el-icon><Plus /></el-icon>
+            添加地址
+          </el-button>
+        </div>
+        <div v-else class="address-list">
+          <div
+            v-for="address in userAddresses"
+            :key="address.id"
+            class="address-item"
+            :class="{ selected: selectedAddress?.id === address.id, 'is-default': address.isDefault === 1 }"
+            @click="selectAddress(address)"
+          >
+            <div class="address-info">
+              <div class="address-header">
+                <span class="name">{{ address.name }}</span>
+                <span class="phone">{{ address.phone }}</span>
+                <el-tag v-if="address.isDefault === 1" type="danger" size="small">默认</el-tag>
+              </div>
+              <div class="address-detail">
+                {{ address.province }}{{ address.city }}{{ address.district }}{{ address.address }}
+              </div>
+            </div>
+            <el-icon v-if="selectedAddress?.id === address.id" color="#667eea" class="check-icon"><Check /></el-icon>
+          </div>
+        </div>
+        <div class="address-dialog-footer">
+          <el-button text @click="goToAddressManage">
+            <el-icon><Plus /></el-icon>
+            管理地址
+          </el-button>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showAddressDialog = false">取消</el-button>
+        <el-button type="primary" @click="confirmAddress" :disabled="!selectedAddress">
+          确定
+        </el-button>
+      </template>
+    </el-dialog>
+
     <el-drawer
       v-model="showMobileCart"
       direction="btt"
@@ -293,17 +373,30 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
-  Search, SwitchButton, ShoppingCart, Plus, Minus 
+  Search, SwitchButton, ShoppingCart, Plus, Minus,
+  Location, ArrowDown, User, Document, Bell, Check
 } from '@element-plus/icons-vue'
+import { mockUserAddresses, mockOrders, mockNotifications, mockOrderTracking } from '../data/mockData'
 
 const router = useRouter()
 const searchKeyword = ref('')
 const activeCategory = ref('all')
 const cartItems = ref([])
 const showMobileCart = ref(false)
+const showAddressDialog = ref(false)
+const selectedAddress = ref(null)
+const remark = ref('')
 
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
 const username = computed(() => user.value.username || '游客')
+
+const userAddresses = computed(() => {
+  return mockUserAddresses.filter(a => a.userId === 1)
+})
+
+const unreadCount = computed(() => {
+  return mockNotifications.filter(n => n.userId === 1 && !n.isRead).length
+})
 
 const categories = [
   { id: 'all', name: '全部', icon: '🍔' },
@@ -533,8 +626,14 @@ const clearCart = () => {
 }
 
 const submitOrder = () => {
+  if (!selectedAddress.value) {
+    ElMessage.warning('请先选择收货地址')
+    showAddressDialog.value = true
+    return
+  }
+
   ElMessageBox.confirm(
-    `您确认要提交订单吗？\n\n共 ${totalQuantity.value} 件商品，总计 ¥${totalPrice.value}`,
+    `您确认要提交订单吗？\n\n收货地址：${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.address}\n共 ${totalQuantity.value} 件商品，总计 ¥${totalPrice.value}`,
     '确认订单',
     {
       confirmButtonText: '确认提交',
@@ -542,13 +641,91 @@ const submitOrder = () => {
       type: 'info'
     }
   ).then(() => {
+    const orderItems = cartItems.value.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price
+    }))
+
+    const newOrder = {
+      id: `ORD${Date.now()}`,
+      userId: 1,
+      userName: selectedAddress.value.name,
+      phone: selectedAddress.value.phone,
+      totalPrice: parseFloat(totalPrice.value),
+      actualPrice: parseFloat(totalPrice.value),
+      status: 1,
+      orderType: 'delivery',
+      orderTime: new Date().toLocaleString(),
+      items: orderItems,
+      address: `${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.address}`,
+      addressId: selectedAddress.value.id,
+      deliveryManId: null,
+      remark: remark.value || '',
+      estimatedDeliveryTime: 30
+    }
+
+    mockOrders.unshift(newOrder)
+
+    const newNotification = {
+      id: mockNotifications.length + 1,
+      userId: 1,
+      type: 'order',
+      title: '订单已创建',
+      content: `您的订单 ${newOrder.id} 已创建成功，等待商家确认`,
+      isRead: 0,
+      createTime: new Date().toLocaleString()
+    }
+    mockNotifications.unshift(newNotification)
+
     ElMessage.success('订单提交成功！')
     cartItems.value = []
     showMobileCart.value = false
+    router.push('/user/orders')
   }).catch(() => {
     // 用户取消
   })
 }
+
+const selectAddress = (address) => {
+  selectedAddress.value = address
+}
+
+const confirmAddress = () => {
+  if (selectedAddress.value) {
+    showAddressDialog.value = false
+    ElMessage.success('已选择收货地址')
+  }
+}
+
+const goToAddressManage = () => {
+  showAddressDialog.value = false
+  router.push('/user/address')
+}
+
+const handleDropdownCommand = (command) => {
+  switch (command) {
+    case 'orders':
+      router.push('/user/orders')
+      break
+    case 'address':
+      router.push('/user/address')
+      break
+    case 'notifications':
+      router.push('/user/notifications')
+      break
+    case 'logout':
+      handleLogout()
+      break
+  }
+}
+
+onMounted(() => {
+  const defaultAddress = userAddresses.value.find(a => a.isDefault === 1)
+  if (defaultAddress) {
+    selectedAddress.value = defaultAddress
+  }
+})
 
 const handleLogout = () => {
   ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -1169,5 +1346,159 @@ const handleLogout = () => {
 
 .mobile-cart-footer .submit-button {
   margin-top: 4px;
+}
+
+.address-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #f0f4ff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.address-selector:hover {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%);
+  border-color: #c7d2fe;
+}
+
+.address-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.address-dialog-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.empty-address {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.empty-address p {
+  margin: 16px 0 20px 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.address-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.address-item:hover {
+  border-color: #c7d2fe;
+  background: #f8fafc;
+}
+
+.address-item.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+}
+
+.address-item.is-default {
+  border-color: #fecaca;
+}
+
+.address-item.is-default.selected {
+  border-color: #667eea;
+}
+
+.address-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.address-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.address-header .name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.address-header .phone {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.address-detail {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.check-icon {
+  margin-left: 12px;
+  flex-shrink: 0;
+}
+
+.address-dialog-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.dropdown-badge {
+  margin-left: 8px;
+}
+
+@media (max-width: 1024px) {
+  .address-selector {
+    order: -1;
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .address-text {
+    max-width: none;
+  }
+  
+  .header-right {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 480px) {
+  .address-selector {
+    padding: 10px 12px;
+  }
+  
+  .address-text {
+    font-size: 13px;
+  }
 }
 </style>
