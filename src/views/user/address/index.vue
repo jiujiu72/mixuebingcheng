@@ -111,7 +111,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Plus, Location } from '@element-plus/icons-vue'
-import { mockUserAddresses } from '../../data/mockData'
+import { mockUserAddresses } from '../../../data/mockData'
 
 const router = useRouter()
 const formRef = ref(null)
