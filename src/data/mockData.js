@@ -10,6 +10,22 @@ export const mockUsers = [
   { id: 8, username: 'zhengshi', name: '郑十', phone: '13800138008', email: 'zhengshi@qq.com', status: 1, createTime: '2024-01-22 15:20:00' }
 ]
 
+// 用户地址管理模拟数据
+export const mockUserAddresses = [
+  { id: 1, userId: 1, name: '张三', phone: '13800138001', province: '北京市', city: '北京市', district: '朝阳区', address: '建国路88号SOHO现代城A座1501', isDefault: 1, createTime: '2024-01-15 10:30:00' },
+  { id: 2, userId: 1, name: '张三', phone: '13800138001', province: '北京市', city: '北京市', district: '海淀区', address: '中关村南大街5号理工大学家属院3号楼2单元101', isDefault: 0, createTime: '2024-01-16 14:20:00' },
+  { id: 3, userId: 2, name: '李四', phone: '13800138002', province: '北京市', city: '北京市', district: '朝阳区', address: '东大桥路56号富力广场B座2203', isDefault: 1, createTime: '2024-01-17 09:15:00' },
+  { id: 4, userId: 4, name: '赵六', phone: '13800138004', province: '北京市', city: '北京市', district: '朝阳区', address: '工人体育场北路8号三里屯SOHO 11层', isDefault: 1, createTime: '2024-01-18 16:45:00' }
+]
+
+// 外卖小哥（骑手）管理模拟数据
+export const mockDeliveryMen = [
+  { id: 1, name: '王军', username: 'wangjun', phone: '15900159001', idCard: '110101199001011234', status: 1, isOnline: 1, rating: 4.8, orderCount: 1256, income: 8560, latitude: 39.9042, longitude: 116.4074, createTime: '2023-06-10 08:00:00' },
+  { id: 2, name: '刘强', username: 'liuqiang', phone: '15900159002', idCard: '110102199102022345', status: 1, isOnline: 0, rating: 4.6, orderCount: 892, income: 6230, latitude: 39.9142, longitude: 116.4174, createTime: '2023-08-15 08:00:00' },
+  { id: 3, name: '张伟', username: 'zhangwei', phone: '15900159003', idCard: '110103199203033456', status: 1, isOnline: 1, rating: 4.9, orderCount: 1568, income: 10890, latitude: 39.8942, longitude: 116.3974, createTime: '2023-05-20 08:00:00' },
+  { id: 4, name: '陈明', username: 'chenming', phone: '15900159004', idCard: '110104199304044567', status: 0, isOnline: 0, rating: 4.5, orderCount: 567, income: 4120, latitude: 39.9242, longitude: 116.4274, createTime: '2024-01-10 08:00:00' }
+]
+
 // 食品分类模拟数据
 export const mockCategories = [
   { id: 1, name: '汉堡', icon: '🍔', sort: 1, status: 1, createTime: '2024-01-10 08:00:00' },
@@ -51,14 +67,45 @@ export const mockEmployees = [
 
 // 订单管理模拟数据
 export const mockOrders = [
-  { id: 'ORD20240115001', userId: 1, userName: '张三', phone: '13800138001', totalPrice: 68, actualPrice: 62, status: 1, orderTime: '2024-01-15 12:30:00', items: [{ name: '经典牛肉汉堡', quantity: 1, price: 28 }, { name: '薯条', quantity: 2, price: 10 }, { name: '珍珠奶茶', quantity: 1, price: 15 }], address: '北京市朝阳区建国路88号', remark: '汉堡少酱' },
-  { id: 'ORD20240115002', userId: 2, userName: '李四', phone: '13800138002', totalPrice: 45, actualPrice: 45, status: 2, orderTime: '2024-01-15 13:15:00', items: [{ name: '经典套餐A', quantity: 1, price: 45 }], address: '北京市朝阳区东大桥路56号', remark: '' },
-  { id: 'ORD20240115003', userId: 3, userName: '王五', phone: '13800138003', totalPrice: 92, actualPrice: 85, status: 3, orderTime: '2024-01-15 18:45:00', items: [{ name: '双层芝士汉堡', quantity: 1, price: 35 }, { name: '香辣鸡腿堡', quantity: 1, price: 32 }, { name: '芒果冰沙', quantity: 1, price: 18 }], address: '北京市朝阳区三里屯北路19号', remark: '要发票' },
-  { id: 'ORD20240116001', userId: 1, userName: '张三', phone: '13800138001', totalPrice: 37, actualPrice: 37, status: 4, orderTime: '2024-01-16 11:20:00', items: [{ name: '双层芝士汉堡', quantity: 1, price: 35 }, { name: '柠檬气泡水', quantity: 1, price: 12 }], address: '北京市朝阳区建国路88号', remark: '' },
-  { id: 'ORD20240116002', userId: 4, userName: '赵六', phone: '13800138004', totalPrice: 56, actualPrice: 50, status: 1, orderTime: '2024-01-16 12:00:00', items: [{ name: '提拉米苏', quantity: 2, price: 22 }, { name: '珍珠奶茶', quantity: 1, price: 15 }], address: '北京市朝阳区工人体育场北路8号', remark: '蛋糕要保温' },
-  { id: 'ORD20240116003', userId: 5, userName: '孙七', phone: '13800138005', totalPrice: 128, actualPrice: 115, status: 2, orderTime: '2024-01-16 19:30:00', items: [{ name: '豪华套餐B', quantity: 2, price: 58 }, { name: '鸡米花', quantity: 1, price: 16 }], address: '北京市朝阳区朝阳公园路6号', remark: '' },
-  { id: 'ORD20240117001', userId: 2, userName: '李四', phone: '13800138002', totalPrice: 22, actualPrice: 22, status: 5, orderTime: '2024-01-17 09:15:00', items: [{ name: '巧克力熔岩蛋糕', quantity: 1, price: 25 }], address: '北京市朝阳区东大桥路56号', remark: '取消订单' },
-  { id: 'ORD20240117002', userId: 6, userName: '周八', phone: '13800138006', totalPrice: 53, actualPrice: 53, status: 1, orderTime: '2024-01-17 12:45:00', items: [{ name: '经典套餐A', quantity: 1, price: 45 }, { name: '洋葱圈', quantity: 1, price: 14 }], address: '北京市朝阳区新东路8号', remark: '' }
+  { id: 'ORD20240115001', userId: 1, userName: '张三', phone: '13800138001', totalPrice: 68, actualPrice: 62, status: 1, orderType: 'delivery', orderTime: '2024-01-15 12:30:00', items: [{ name: '经典牛肉汉堡', quantity: 1, price: 28 }, { name: '薯条', quantity: 2, price: 10 }, { name: '珍珠奶茶', quantity: 1, price: 15 }], address: '北京市朝阳区建国路88号', addressId: 1, deliveryManId: null, remark: '汉堡少酱', estimatedDeliveryTime: 30 },
+  { id: 'ORD20240115002', userId: 2, userName: '李四', phone: '13800138002', totalPrice: 45, actualPrice: 45, status: 2, orderType: 'delivery', orderTime: '2024-01-15 13:15:00', items: [{ name: '经典套餐A', quantity: 1, price: 45 }], address: '北京市朝阳区东大桥路56号', addressId: 3, deliveryManId: 1, remark: '', estimatedDeliveryTime: 25 },
+  { id: 'ORD20240115003', userId: 3, userName: '王五', phone: '13800138003', totalPrice: 92, actualPrice: 85, status: 3, orderType: 'delivery', orderTime: '2024-01-15 18:45:00', items: [{ name: '双层芝士汉堡', quantity: 1, price: 35 }, { name: '香辣鸡腿堡', quantity: 1, price: 32 }, { name: '芒果冰沙', quantity: 1, price: 18 }], address: '北京市朝阳区三里屯北路19号', addressId: null, deliveryManId: 3, remark: '要发票', estimatedDeliveryTime: 35 },
+  { id: 'ORD20240116001', userId: 1, userName: '张三', phone: '13800138001', totalPrice: 37, actualPrice: 37, status: 4, orderType: 'delivery', orderTime: '2024-01-16 11:20:00', items: [{ name: '双层芝士汉堡', quantity: 1, price: 35 }, { name: '柠檬气泡水', quantity: 1, price: 12 }], address: '北京市朝阳区建国路88号', addressId: 1, deliveryManId: 1, remark: '', estimatedDeliveryTime: 30 },
+  { id: 'ORD20240116002', userId: 4, userName: '赵六', phone: '13800138004', totalPrice: 56, actualPrice: 50, status: 1, orderType: 'delivery', orderTime: '2024-01-16 12:00:00', items: [{ name: '提拉米苏', quantity: 2, price: 22 }, { name: '珍珠奶茶', quantity: 1, price: 15 }], address: '北京市朝阳区工人体育场北路8号', addressId: 4, deliveryManId: null, remark: '蛋糕要保温', estimatedDeliveryTime: 28 },
+  { id: 'ORD20240116003', userId: 5, userName: '孙七', phone: '13800138005', totalPrice: 128, actualPrice: 115, status: 2, orderType: 'delivery', orderTime: '2024-01-16 19:30:00', items: [{ name: '豪华套餐B', quantity: 2, price: 58 }, { name: '鸡米花', quantity: 1, price: 16 }], address: '北京市朝阳区朝阳公园路6号', addressId: null, deliveryManId: null, remark: '', estimatedDeliveryTime: 32 },
+  { id: 'ORD20240117001', userId: 2, userName: '李四', phone: '13800138002', totalPrice: 22, actualPrice: 22, status: 5, orderType: 'delivery', orderTime: '2024-01-17 09:15:00', items: [{ name: '巧克力熔岩蛋糕', quantity: 1, price: 25 }], address: '北京市朝阳区东大桥路56号', addressId: 3, deliveryManId: null, remark: '取消订单', estimatedDeliveryTime: 0 },
+  { id: 'ORD20240117002', userId: 6, userName: '周八', phone: '13800138006', totalPrice: 53, actualPrice: 53, status: 1, orderType: 'delivery', orderTime: '2024-01-17 12:45:00', items: [{ name: '经典套餐A', quantity: 1, price: 45 }, { name: '洋葱圈', quantity: 1, price: 14 }], address: '北京市朝阳区新东路8号', addressId: null, deliveryManId: null, remark: '', estimatedDeliveryTime: 30 }
+]
+
+// 订单配送状态映射（外卖专用）
+export const deliveryStatusMap = {
+  1: { label: '待接单', type: 'warning' },
+  2: { label: '已接单', type: 'primary' },
+  3: { label: '取餐中', type: 'info' },
+  4: { label: '配送中', type: 'warning' },
+  5: { label: '已送达', type: 'success' },
+  6: { label: '已取消', type: 'danger' }
+}
+
+// 订单跟踪记录模拟数据
+export const mockOrderTracking = [
+  { id: 1, orderId: 'ORD20240115003', status: 1, description: '订单已创建，等待商家确认', time: '2024-01-15 18:45:00' },
+  { id: 2, orderId: 'ORD20240115003', status: 2, description: '商家已确认，等待骑手接单', time: '2024-01-15 18:47:00' },
+  { id: 3, orderId: 'ORD20240115003', status: 3, description: '骑手张伟已接单，正在前往商家', time: '2024-01-15 18:50:00', deliveryManId: 3 },
+  { id: 4, orderId: 'ORD20240115003', status: 4, description: '骑手已取餐，正在配送中', time: '2024-01-15 18:58:00', deliveryManId: 3 },
+  { id: 5, orderId: 'ORD20240116001', status: 1, description: '订单已创建，等待商家确认', time: '2024-01-16 11:20:00' },
+  { id: 6, orderId: 'ORD20240116001', status: 2, description: '商家已确认，等待骑手接单', time: '2024-01-16 11:22:00' },
+  { id: 7, orderId: 'ORD20240116001', status: 3, description: '骑手王军已接单，正在前往商家', time: '2024-01-16 11:25:00', deliveryManId: 1 },
+  { id: 8, orderId: 'ORD20240116001', status: 4, description: '骑手已取餐，正在配送中', time: '2024-01-16 11:32:00', deliveryManId: 1 },
+  { id: 9, orderId: 'ORD20240116001', status: 5, description: '订单已送达，感谢您的使用', time: '2024-01-16 11:55:00', deliveryManId: 1 }
+]
+
+// 消息通知模拟数据
+export const mockNotifications = [
+  { id: 1, userId: 1, type: 'order', title: '订单已接单', content: '您的订单 ORD20240116001 已被骑手王军接单', isRead: 0, createTime: '2024-01-16 11:25:00' },
+  { id: 2, userId: 1, type: 'order', title: '订单已送达', content: '您的订单 ORD20240116001 已送达，请确认收货', isRead: 1, createTime: '2024-01-16 11:55:00' },
+  { id: 3, userId: 2, type: 'order', title: '订单已创建', content: '您的订单 ORD20240115002 已创建成功', isRead: 1, createTime: '2024-01-15 13:15:00' },
+  { id: 4, userId: 3, type: 'order', title: '订单已接单', content: '您的订单 ORD20240115003 已被骑手张伟接单', isRead: 0, createTime: '2024-01-15 18:50:00' }
 ]
 
 // 订单状态映射
