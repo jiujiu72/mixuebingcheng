@@ -125,12 +125,12 @@ const handleLogin = () => {
   setTimeout(() => {
     loading.value = false
     
-    if (form.username === 'admin' && form.password === '123456') {
+    if (form.username === 'user' && form.password === '123456') {
       localStorage.setItem('user', JSON.stringify({ username: form.username }))
       ElMessage.success('登录成功！')
       router.push('/home')
     } else {
-      ElMessage.error('用户名或密码错误！演示账号: admin / 123456')
+      ElMessage.error('用户名或密码错误！演示账号: user / 123456')
     }
   }, 500)
 }
