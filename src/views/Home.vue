@@ -647,11 +647,21 @@ import {
   getMemberDayRulesInfo,
   canAccessMemberDayBenefits
 } from '../utils/memberDayUtils'
+import {
+  cartItems as globalCartItems,
+  loadCartFromStorage,
+  addToCart as globalAddToCart,
+  removeFromCart as globalRemoveFromCart,
+  updateCartItemQuantity,
+  clearCart as globalClearCart,
+  getTotalQuantity,
+  getTotalPrice as getGlobalTotalPrice
+} from '../utils/cartUtils'
 
 const router = useRouter()
 const searchKeyword = ref('')
 const activeCategory = ref('all')
-const cartItems = ref([])
+const cartItems = globalCartItems
 const showMobileCart = ref(false)
 const showAddressDialog = ref(false)
 const selectedAddress = ref(null)
@@ -846,7 +856,7 @@ const unusedCouponsCount = computed(() => {
 })
 
 const totalQuantity = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
+  return getTotalQuantity()
 })
 
 const userCoupons = computed(() => {
@@ -1188,18 +1198,13 @@ const getCartQuantity = (itemId) => {
 }
 
 const addToCart = (item) => {
-  const existingItem = cartItems.value.find(i => i.id === item.id)
+  const success = globalAddToCart(item, 1)
   
-  if (existingItem) {
-    existingItem.quantity++
+  if (success) {
+    ElMessage.success(`已添加 ${item.name || item.foodName}`)
   } else {
-    cartItems.value.push({
-      ...item,
-      quantity: 1
-    })
+    ElMessage.error('添加购物车失败，请重试')
   }
-  
-  ElMessage.success(`已添加 ${item.name}`)
 }
 
 const removeFromCart = (item) => {
@@ -1207,10 +1212,9 @@ const removeFromCart = (item) => {
   
   if (existingItem) {
     if (existingItem.quantity > 1) {
-      existingItem.quantity--
+      updateCartItemQuantity(item.id, existingItem.quantity - 1)
     } else {
-      const index = cartItems.value.findIndex(i => i.id === item.id)
-      cartItems.value.splice(index, 1)
+      globalRemoveFromCart(item.id)
     }
   }
 }
@@ -1221,7 +1225,7 @@ const clearCart = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    cartItems.value = []
+    globalClearCart()
     ElMessage.success('购物车已清空')
   }).catch(() => {
     // 用户取消

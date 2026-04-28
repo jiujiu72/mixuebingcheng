@@ -8,6 +8,16 @@
         </el-button>
         <h1 class="page-title">限时秒杀</h1>
       </div>
+      <div class="page-header-right">
+        <div 
+          class="cart-button" 
+          :class="{ 'has-items': totalQuantity > 0 }"
+          @click="toggleCartDrawer"
+        >
+          <el-icon :size="24"><ShoppingCart /></el-icon>
+          <span v-if="totalQuantity > 0" class="cart-badge">{{ totalQuantity }}</span>
+        </div>
+      </div>
     </header>
 
     <main class="main-content">
@@ -117,14 +127,100 @@
         </div>
       </div>
     </main>
+
+    <el-drawer
+      v-model="showCartDrawer"
+      title="购物车"
+      direction="rtl"
+      :size="400"
+      :show-close="true"
+    >
+      <div class="cart-drawer-content">
+        <div v-if="cartItems.length === 0" class="cart-empty">
+          <el-icon :size="64" color="#cbd5e1"><ShoppingCart /></el-icon>
+          <p class="empty-text">购物车是空的</p>
+          <p class="empty-hint">快去挑选心仪的商品吧~</p>
+        </div>
+
+        <div v-else class="cart-items-wrapper">
+          <div
+            v-for="item in cartItems"
+            :key="item.id"
+            class="cart-item"
+          >
+            <div class="cart-item-image">
+              <img :src="item.image" :alt="item.name || item.foodName" />
+            </div>
+            <div class="cart-item-info">
+              <div class="cart-item-name">{{ item.name || item.foodName }}</div>
+              <div class="cart-item-price">
+                <span class="current-price">¥{{ item.price || item.seckillPrice || item.originalPrice }}</span>
+                <span v-if="item.originalPrice && (item.price || item.seckillPrice) < item.originalPrice" class="original-price">¥{{ item.originalPrice }}</span>
+              </div>
+              <div class="cart-item-actions">
+                <el-button
+                  size="small"
+                  circle
+                  :type="item.quantity > 1 ? 'primary' : 'default'"
+                  @click="decreaseQuantity(item)"
+                >
+                  <el-icon><Minus /></el-icon>
+                </el-button>
+                <span class="quantity">{{ item.quantity }}</span>
+                <el-button
+                  size="small"
+                  circle
+                  type="primary"
+                  @click="increaseQuantity(item)"
+                >
+                  <el-icon><Plus /></el-icon>
+                </el-button>
+                <el-button
+                  size="small"
+                  text
+                  type="danger"
+                  class="remove-btn"
+                  @click="removeItem(item.id)"
+                >
+                  删除
+                </el-button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer v-if="cartItems.length > 0">
+        <div class="cart-footer">
+          <div class="cart-summary">
+            <div class="summary-row">
+              <span>商品数量</span>
+              <span class="highlight">{{ totalQuantity }} 件</span>
+            </div>
+            <div class="summary-row total">
+              <span>合计</span>
+              <span class="total-price">¥{{ totalPrice.toFixed(2) }}</span>
+            </div>
+          </div>
+          <div class="cart-actions">
+            <el-button type="default" @click="clearCart">
+              清空购物车
+            </el-button>
+            <el-button type="primary" class="checkout-btn" @click="handleCheckout">
+              去结算
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { ArrowLeft, Box } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowLeft, Box, ShoppingCart, Plus, Minus } from '@element-plus/icons-vue'
 import {
   getActiveSessions,
   getSeckillItemsBySession,
@@ -136,6 +232,16 @@ import {
   getStockPercentage,
   getCurrentActiveSession
 } from '../../utils/seckillUtils'
+import { 
+  cartItems,
+  loadCartFromStorage,
+  addToCart,
+  removeFromCart,
+  updateCartItemQuantity,
+  clearCart,
+  getTotalQuantity,
+  getTotalPrice
+} from '../../utils/cartUtils'
 import { mockSeckillSessions } from '../../data/mockData'
 
 const router = useRouter()
@@ -143,6 +249,43 @@ const router = useRouter()
 const selectedSessionId = ref(null)
 const countdown = ref({ hours: 0, minutes: 0, seconds: 0, totalMs: 0, isExpired: false })
 let countdownTimer = null
+
+const showCartDrawer = ref(false)
+
+const totalQuantity = computed(() => getTotalQuantity())
+const totalPrice = computed(() => getTotalPrice())
+
+const toggleCartDrawer = () => {
+  showCartDrawer.value = !showCartDrawer.value
+}
+
+const increaseQuantity = (item) => {
+  updateCartItemQuantity(item.id, item.quantity + 1)
+}
+
+const decreaseQuantity = (item) => {
+  if (item.quantity > 1) {
+    updateCartItemQuantity(item.id, item.quantity - 1)
+  } else {
+    removeItem(item.id)
+  }
+}
+
+const removeItem = (itemId) => {
+  ElMessageBox.confirm('确定要删除该商品吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    removeFromCart(itemId)
+    ElMessage.success('已删除')
+  }).catch(() => {})
+}
+
+const handleCheckout = () => {
+  ElMessage.info('结算功能开发中...')
+  showCartDrawer.value = false
+}
 
 const activeSessions = computed(() => {
   return getActiveSessions()
@@ -221,7 +364,31 @@ const handlePurchase = (item) => {
     return
   }
 
-  ElMessage.success(`已添加到购物车：${item.foodName}`)
+  const cartItem = {
+    id: item.id,
+    foodId: item.foodId,
+    name: item.foodName,
+    foodName: item.foodName,
+    description: item.description,
+    price: item.seckillPrice,
+    seckillPrice: item.seckillPrice,
+    originalPrice: item.originalPrice,
+    image: item.image,
+    categoryId: item.categoryId,
+    stock: item.stock,
+    sold: item.sold,
+    limitPerUser: item.limitPerUser,
+    sessionId: item.sessionId,
+    isSeckill: true
+  }
+
+  const success = addToCart(cartItem, 1)
+  
+  if (success) {
+    ElMessage.success(`已添加到购物车：${item.foodName}`)
+  } else {
+    ElMessage.error('添加购物车失败，请重试')
+  }
 }
 
 const goBack = () => {
@@ -229,6 +396,8 @@ const goBack = () => {
 }
 
 onMounted(() => {
+  loadCartFromStorage()
+  
   const currentSession = getCurrentActiveSession()
   if (currentSession) {
     selectedSessionId.value = currentSession.id
@@ -624,6 +793,268 @@ onUnmounted(() => {
 
   .product-info {
     flex: 1;
+  }
+}
+
+.page-header {
+  justify-content: space-between;
+}
+
+.page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.cart-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #f1f5f9;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #64748b;
+}
+
+.cart-button:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.cart-button.has-items {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.cart-button.has-items:hover {
+  transform: scale(1.05);
+}
+
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  background: #ef4444;
+  color: white;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  border: 2px solid white;
+}
+
+.cart-drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.cart-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+}
+
+.cart-empty .empty-text {
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.cart-empty .empty-hint {
+  margin-top: 8px;
+  font-size: 14px;
+  color: #94a3b8;
+}
+
+.cart-items-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cart-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.cart-item:hover {
+  background: #f1f5f9;
+}
+
+.cart-item-image {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.cart-item-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cart-item-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.cart-item-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cart-item-price .current-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.cart-item-price .original-price {
+  font-size: 12px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.cart-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.cart-item-actions .quantity {
+  min-width: 32px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.cart-item-actions .remove-btn {
+  margin-left: auto;
+}
+
+.cart-footer {
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.cart-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.summary-row .highlight {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.summary-row.total {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.summary-row.total .total-price {
+  font-size: 20px;
+  color: #ef4444;
+}
+
+.cart-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cart-actions .el-button {
+  flex: 1;
+  height: 44px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.cart-actions .checkout-btn {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    padding: 12px 16px;
+  }
+
+  .cart-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+
+  .cart-badge {
+    min-width: 18px;
+    height: 18px;
+    font-size: 11px;
+    padding: 0 5px;
+  }
+
+  .cart-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .cart-item-image {
+    width: 70px;
+    height: 70px;
+  }
+
+  .cart-item-name {
+    font-size: 14px;
+  }
+
+  .summary-row.total .total-price {
+    font-size: 18px;
   }
 }
 </style>
