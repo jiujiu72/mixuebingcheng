@@ -241,9 +241,34 @@
                 <span>商品数量</span>
                 <span>{{ totalQuantity }} 件</span>
               </div>
+              <div class="summary-row discount-row" v-if="selectedCoupon">
+                <div class="discount-label">
+                  <span>优惠券</span>
+                  <el-button text size="small" @click="showCouponDialog = true">
+                    更换
+                  </el-button>
+                </div>
+                <div class="discount-value">
+                  <el-tag type="success" size="small">
+                    -¥{{ couponDiscountAmount.toFixed(2) }}
+                  </el-tag>
+                </div>
+              </div>
+              <div class="summary-row coupon-select-row" v-else>
+                <div class="coupon-select" @click="showCouponDialog = true">
+                  <el-icon><Ticket /></el-icon>
+                  <span class="coupon-text">选择优惠券</span>
+                  <el-icon><ArrowRight /></el-icon>
+                </div>
+                <div class="coupon-count" v-if="availableCouponsForUse.length > 0">
+                  <el-tag type="primary" size="small">
+                    {{ availableCouponsForUse.length }}张可用
+                  </el-tag>
+                </div>
+              </div>
               <div class="summary-row total">
-                <span>合计</span>
-                <span class="total-price">¥{{ totalPrice }}</span>
+                <span>实付</span>
+                <span class="total-price">¥{{ finalPrice }}</span>
               </div>
             </div>
             
@@ -317,6 +342,98 @@
       </template>
     </el-dialog>
 
+    <el-dialog
+      v-model="showCouponDialog"
+      title="选择优惠券"
+      width="600px"
+      :close-on-click-modal="false"
+      custom-class="coupon-dialog"
+    >
+      <div class="coupon-dialog-content">
+        <div class="coupon-dialog-header">
+          <span class="total-amount">订单金额：<span class="amount">¥{{ totalPrice }}</span></span>
+          <span class="available-count">可用优惠券：<span class="count">{{ availableCouponsForUse.length }}张</span></span>
+        </div>
+
+        <div v-if="availableCouponsForUse.length === 0 && unavailableCouponsForUse.length === 0" class="coupon-empty">
+          <el-icon :size="48" color="#cbd5e1"><Ticket /></el-icon>
+          <p>暂无可用优惠券</p>
+          <el-button type="primary" text @click="goToCouponCenter">
+            去领取优惠券
+          </el-button>
+        </div>
+
+        <div class="coupon-list">
+          <div
+            v-for="coupon in availableCouponsForUse"
+            :key="coupon.id"
+            class="coupon-select-card"
+            :class="{ selected: selectedCoupon?.id === coupon.id }"
+            @click="selectCoupon(coupon)"
+          >
+            <div class="coupon-select-left">
+              <div class="coupon-select-value">
+                <span class="currency" v-if="coupon.couponInfo.type === 'discount' || coupon.couponInfo.type === 'cash'">¥</span>
+                <span class="value">{{ getCouponValueDisplay(coupon.couponInfo).value }}</span>
+                <span class="unit" v-if="coupon.couponInfo.type === 'percent'">折</span>
+                <span class="unit" v-if="coupon.couponInfo.type === 'freeShipping'">运费</span>
+              </div>
+              <div class="coupon-select-type">
+                {{ getCouponTypeLabel(coupon.couponInfo) }}
+              </div>
+            </div>
+            <div class="coupon-select-right">
+              <div class="coupon-select-header">
+                <div class="coupon-select-name">{{ coupon.couponInfo.name }}</div>
+                <el-radio :model-value="selectedCoupon?.id === coupon.id" :value="coupon.id" />
+              </div>
+              <div class="coupon-select-desc">{{ coupon.couponInfo.description }}</div>
+              <div class="coupon-select-meta">
+                <div class="coupon-select-time">
+                  <el-icon size="12"><Clock /></el-icon>
+                  <span>{{ formatTime(coupon.couponInfo.startTime) }} - {{ formatTime(coupon.couponInfo.endTime) }}</span>
+                </div>
+                <div class="coupon-select-save">
+                  可省 <span class="save-amount">¥{{ calculateCouponDiscount(coupon).toFixed(2) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="unavailableCouponsForUse.length > 0" class="unavailable-section">
+          <div class="unavailable-header">
+            <span class="unavailable-title">不可用优惠券</span>
+            <span class="unavailable-count">{{ unavailableCouponsForUse.length }}张</span>
+          </div>
+          <div class="unavailable-list">
+            <div
+              v-for="coupon in unavailableCouponsForUse"
+              :key="coupon.id"
+              class="unavailable-coupon-card"
+            >
+              <div class="unavailable-left">
+                <div class="unavailable-value">
+                  <span class="value">{{ getCouponValueDisplay(coupon.couponInfo).value }}</span>
+                </div>
+              </div>
+              <div class="unavailable-right">
+                <div class="unavailable-name">{{ coupon.couponInfo.name }}</div>
+                <div class="unavailable-reason">
+                  <el-icon size="12" color="#f97316"><Warning /></el-icon>
+                  <span>{{ coupon.unavailableReasons?.[0]?.full || '暂不可用' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="clearSelectedCoupon">不使用优惠券</el-button>
+        <el-button type="primary" @click="confirmCouponSelection">确定</el-button>
+      </template>
+    </el-dialog>
+
     <el-drawer
       v-model="showMobileCart"
       direction="btt"
@@ -387,9 +504,18 @@
             <div class="summary-row">
               <span>共 {{ totalQuantity }} 件商品</span>
             </div>
+            <div class="summary-row coupon-row-mobile" v-if="cartItems.length > 0" @click="showCouponDialog = true">
+              <div class="coupon-select-mobile">
+                <el-icon><Ticket /></el-icon>
+                <span v-if="selectedCoupon">{{ selectedCoupon.couponInfo.name }} -¥{{ couponDiscountAmount.toFixed(2) }}</span>
+                <span v-else-if="availableCouponsForUse.length > 0">选择优惠券 ({{ availableCouponsForUse.length }}张可用)</span>
+                <span v-else>选择优惠券</span>
+                <el-icon><ArrowRight /></el-icon>
+              </div>
+            </div>
             <div class="summary-row total">
-              <span>合计</span>
-              <span class="total-price">¥{{ totalPrice }}</span>
+              <span>实付</span>
+              <span class="total-price">¥{{ finalPrice }}</span>
             </div>
           </div>
           
@@ -414,7 +540,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Search, SwitchButton, ShoppingCart, Plus, Minus,
   Location, ArrowDown, User, Document, Bell, Check,
-  Star, StarFilled, Ticket, Wallet, Medal, ChatDotRound
+  Star, StarFilled, Ticket, Wallet, Medal, ChatDotRound,
+  Clock, Warning, ArrowRight
 } from '@element-plus/icons-vue'
 import { 
   mockUserAddresses, 
@@ -424,8 +551,26 @@ import {
   mockFavorites,
   mockUserVips,
   mockUserPoints,
-  mockUserCoupons
+  mockUserCoupons,
+  mockCoupons
 } from '../data/mockData'
+import {
+  loadUserCouponsFromLocalStorage,
+  saveUserCouponsToLocalStorage,
+  isCouponValid,
+  isCouponExpired,
+  getUnavailableReason,
+  getCouponTypeLabel,
+  getCouponValueDisplay,
+  getScopeDisplay,
+  isVipActive,
+  calculateDiscount,
+  checkAmountThreshold,
+  checkCategoryRestriction,
+  checkVipRestriction,
+  checkNewUserRestriction,
+  checkStackCompatibility
+} from '../utils/couponUtils'
 
 const router = useRouter()
 const searchKeyword = ref('')
@@ -435,6 +580,10 @@ const showMobileCart = ref(false)
 const showAddressDialog = ref(false)
 const selectedAddress = ref(null)
 const remark = ref('')
+
+const showCouponDialog = ref(false)
+const selectedCoupon = ref(null)
+const selectedCouponInDialog = ref(null)
 
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
 const username = computed(() => user.value.username || '游客')
@@ -463,6 +612,121 @@ const unusedCouponsCount = computed(() => {
   return mockUserCoupons.filter(c => c.userId === 1 && c.status === 'unused').length
 })
 
+const totalPrice = computed(() => {
+  return cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
+})
+
+const totalQuantity = computed(() => {
+  return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
+})
+
+const userCoupons = computed(() => {
+  return mockUserCoupons
+    .filter(c => c.userId === 1)
+    .map(coupon => ({
+      ...coupon,
+      couponInfo: mockCoupons.find(c => c.id === coupon.couponId) || {}
+    }))
+    .filter(c => c.couponInfo.id)
+})
+
+const unusedCouponsWithInfo = computed(() => {
+  return userCoupons.value.filter(c => c.status === 'unused')
+})
+
+const cartItemsForCouponCheck = computed(() => {
+  const categoryMap = {
+    'burger': 1,
+    'drink': 2,
+    'snack': 3,
+    'dessert': 4,
+    'set': 5
+  }
+  return cartItems.value.map(item => ({
+    ...item,
+    categoryId: categoryMap[item.category] || null
+  }))
+})
+
+const availableCouponsForUse = computed(() => {
+  const totalAmount = parseFloat(totalPrice.value)
+  const items = cartItemsForCouponCheck.value
+  
+  return unusedCouponsWithInfo.value
+    .filter(coupon => {
+      if (!isCouponValid(coupon)) return false
+      
+      const reasons = getUnavailableReason(
+        coupon,
+        totalAmount,
+        items,
+        null,
+        userVipInfo.value,
+        [],
+        []
+      )
+      
+      return reasons.length === 0
+    })
+    .map(coupon => ({
+      ...coupon,
+      unavailableReasons: []
+    }))
+    .sort((a, b) => {
+      const discountA = calculateCouponDiscount(a)
+      const discountB = calculateCouponDiscount(b)
+      return discountB - discountA
+    })
+})
+
+const unavailableCouponsForUse = computed(() => {
+  const totalAmount = parseFloat(totalPrice.value)
+  const items = cartItemsForCouponCheck.value
+  
+  return unusedCouponsWithInfo.value
+    .filter(coupon => {
+      if (!isCouponValid(coupon)) return true
+      
+      const reasons = getUnavailableReason(
+        coupon,
+        totalAmount,
+        items,
+        null,
+        userVipInfo.value,
+        [],
+        []
+      )
+      
+      return reasons.length > 0
+    })
+    .map(coupon => {
+      const reasons = getUnavailableReason(
+        coupon,
+        parseFloat(totalPrice.value),
+        cartItemsForCouponCheck.value,
+        null,
+        userVipInfo.value,
+        [],
+        []
+      )
+      return {
+        ...coupon,
+        unavailableReasons: reasons
+      }
+    })
+})
+
+const couponDiscountAmount = computed(() => {
+  if (!selectedCoupon.value) return 0
+  return calculateCouponDiscount(selectedCoupon.value)
+})
+
+const finalPrice = computed(() => {
+  const total = parseFloat(totalPrice.value)
+  const discount = couponDiscountAmount.value
+  return Math.max(0, total - discount).toFixed(2)
+})
+
 const isFavorite = (foodId) => {
   return mockFavorites.some(f => f.userId === 1 && f.foodId === foodId)
 }
@@ -483,6 +747,43 @@ const toggleFavorite = (foodId) => {
     mockFavorites.push(newFavorite)
     ElMessage.success('已添加到收藏')
   }
+}
+
+const calculateCouponDiscount = (coupon) => {
+  if (!coupon || !coupon.couponInfo) return 0
+  
+  const totalAmount = parseFloat(totalPrice.value)
+  const { discount } = calculateDiscount(coupon, totalAmount, cartItemsForCouponCheck.value)
+  return discount
+}
+
+const selectCoupon = (coupon) => {
+  selectedCouponInDialog.value = coupon
+}
+
+const clearSelectedCoupon = () => {
+  selectedCoupon.value = null
+  selectedCouponInDialog.value = null
+  showCouponDialog.value = false
+  ElMessage.info('已取消使用优惠券')
+}
+
+const confirmCouponSelection = () => {
+  if (selectedCouponInDialog.value) {
+    selectedCoupon.value = selectedCouponInDialog.value
+    ElMessage.success(`已选择: ${selectedCoupon.value.couponInfo.name}`)
+  }
+  showCouponDialog.value = false
+}
+
+const formatTime = (time) => {
+  if (!time) return ''
+  return time.split(' ')[0]
+}
+
+const goToCouponCenter = () => {
+  showCouponDialog.value = false
+  router.push('/user/coupons')
 }
 
 const categories = [
@@ -658,14 +959,6 @@ const filteredMenuItems = computed(() => {
   return items
 })
 
-const totalQuantity = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.quantity, 0)
-})
-
-const totalPrice = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)
-})
-
 const getCartQuantity = (itemId) => {
   const item = cartItems.value.find(i => i.id === itemId)
   return item ? item.quantity : 0
@@ -719,8 +1012,16 @@ const submitOrder = () => {
     return
   }
 
+  let confirmMessage = `您确认要提交订单吗？\n\n收货地址：${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.address}\n共 ${totalQuantity.value} 件商品`
+  
+  if (selectedCoupon.value) {
+    confirmMessage += `\n商品金额：¥${totalPrice.value}\n优惠券抵扣：-¥${couponDiscountAmount.value}\n实付金额：¥${finalPrice.value}`
+  } else {
+    confirmMessage += `\n总计：¥${totalPrice.value}`
+  }
+
   ElMessageBox.confirm(
-    `您确认要提交订单吗？\n\n收货地址：${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.address}\n共 ${totalQuantity.value} 件商品，总计 ¥${totalPrice.value}`,
+    confirmMessage,
     '确认订单',
     {
       confirmButtonText: '确认提交',
@@ -740,7 +1041,10 @@ const submitOrder = () => {
       userName: selectedAddress.value.name,
       phone: selectedAddress.value.phone,
       totalPrice: parseFloat(totalPrice.value),
-      actualPrice: parseFloat(totalPrice.value),
+      actualPrice: parseFloat(finalPrice.value),
+      discountAmount: couponDiscountAmount.value,
+      couponId: selectedCoupon.value?.couponId || null,
+      couponName: selectedCoupon.value?.couponInfo?.name || null,
       status: 1,
       orderType: 'delivery',
       orderTime: new Date().toLocaleString(),
@@ -753,6 +1057,20 @@ const submitOrder = () => {
     }
 
     mockOrders.unshift(newOrder)
+
+    if (selectedCoupon.value) {
+      const couponIndex = mockUserCoupons.findIndex(c => c.id === selectedCoupon.value.id)
+      if (couponIndex > -1) {
+        mockUserCoupons[couponIndex] = {
+          ...mockUserCoupons[couponIndex],
+          status: 'used',
+          usedTime: new Date().toLocaleString(),
+          orderId: newOrder.id
+        }
+        saveUserCouponsToLocalStorage()
+      }
+      selectedCoupon.value = null
+    }
 
     const newNotification = {
       id: mockNotifications.length + 1,

@@ -14,40 +14,83 @@
       </el-button>
     </header>
 
+    <div class="coupons-stats" v-if="userCoupons.length > 0">
+      <div class="stat-item">
+        <span class="stat-value">{{ validUnusedCount }}</span>
+        <span class="stat-label">可用</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">{{ usedCount }}</span>
+        <span class="stat-label">已使用</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">{{ expiredCount }}</span>
+        <span class="stat-label">已过期</span>
+      </div>
+    </div>
+
     <div class="coupons-tabs">
       <el-tabs v-model="activeTab" type="card">
         <el-tab-pane label="可使用" name="unused">
           <div class="coupons-list">
             <div
-              v-for="coupon in unusedCoupons"
+              v-for="coupon in unusedCouponsWithValidation"
               :key="coupon.id"
-              class="coupon-card unused"
+              class="coupon-card"
+              :class="{ 
+                'available': coupon.isAvailable, 
+                'unavailable': !coupon.isAvailable,
+                'disabled': !coupon.isAvailable
+              }"
             >
-              <div class="coupon-left">
+              <div class="coupon-left" :class="{ 'gray': !coupon.isAvailable }">
                 <div class="coupon-value">
-                  <span class="currency">¥</span>
-                  <span class="value">{{ coupon.couponInfo.value }}</span>
+                  <span class="unit">{{ coupon.valueDisplay.unit }}</span>
+                  <span class="value">{{ coupon.valueDisplay.value }}</span>
                 </div>
-                <div class="coupon-type" v-if="coupon.couponInfo.type === 'discount'">
-                  满{{ coupon.couponInfo.minAmount }}减{{ coupon.couponInfo.value }}
-                </div>
-                <div class="coupon-type" v-else-if="coupon.couponInfo.type === 'percent'">
-                  {{ coupon.couponInfo.value }}折优惠
-                </div>
-                <div class="coupon-type" v-else>
-                  免配送费
+                <div class="coupon-type">
+                  {{ getCouponTypeLabel(coupon.couponInfo) }}
                 </div>
               </div>
               <div class="coupon-right">
-                <div class="coupon-name">{{ coupon.couponInfo.name }}</div>
-                <div class="coupon-description">{{ coupon.couponInfo.description }}</div>
-                <div class="coupon-time">
-                  有效期：{{ formatTime(coupon.couponInfo.startTime) }} - {{ formatTime(coupon.couponInfo.endTime) }}
+                <div class="coupon-top">
+                  <div class="coupon-header">
+                    <div class="coupon-name">{{ coupon.couponInfo.name }}</div>
+                    <div class="coupon-tags">
+                      <el-tag v-if="coupon.couponInfo.isVipOnly" type="warning" size="small">VIP专享</el-tag>
+                      <el-tag v-if="coupon.couponInfo.isNewUserOnly" type="danger" size="small">新用户</el-tag>
+                      <el-tag v-if="coupon.couponInfo.canStack" type="success" size="small">可叠加</el-tag>
+                    </div>
+                  </div>
+                  <div class="coupon-description">{{ coupon.couponInfo.description }}</div>
                 </div>
-                <div class="coupon-actions">
-                  <el-button type="primary" size="small" @click="useCoupon(coupon)">
-                    立即使用
-                  </el-button>
+                
+                <div class="coupon-bottom">
+                  <div class="coupon-meta">
+                    <div class="coupon-time">
+                      <el-icon><Clock /></el-icon>
+                      有效期：{{ formatTime(coupon.couponInfo.startTime) }} - {{ formatTime(coupon.couponInfo.endTime) }}
+                    </div>
+                    <div class="coupon-scope" v-if="coupon.couponInfo.scope !== 'all'">
+                      <el-icon><Warning /></el-icon>
+                      {{ getScopeDisplay(coupon.couponInfo) }}
+                    </div>
+                  </div>
+                  
+                  <div class="coupon-actions">
+                    <template v-if="coupon.isAvailable">
+                      <el-button type="primary" size="small" @click="useCoupon(coupon)">
+                        立即使用
+                      </el-button>
+                    </template>
+                    <template v-else>
+                      <el-tooltip :content="coupon.unavailableReasons?.[0]?.full || '暂不可用'" placement="top">
+                        <el-button size="small" disabled>
+                          {{ coupon.unavailableReasons?.[0]?.short || '暂不可用' }}
+                        </el-button>
+                      </el-tooltip>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>
@@ -71,29 +114,25 @@
               :key="coupon.id"
               class="coupon-card used"
             >
-              <div class="coupon-left">
+              <div class="coupon-left gray">
                 <div class="coupon-value">
-                  <span class="currency">¥</span>
-                  <span class="value">{{ coupon.couponInfo.value }}</span>
+                  <span class="unit">{{ getCouponValueDisplay(coupon.couponInfo).unit }}</span>
+                  <span class="value">{{ getCouponValueDisplay(coupon.couponInfo).value }}</span>
                 </div>
-                <div class="coupon-type" v-if="coupon.couponInfo.type === 'discount'">
-                  满{{ coupon.couponInfo.minAmount }}减{{ coupon.couponInfo.value }}
-                </div>
-                <div class="coupon-type" v-else-if="coupon.couponInfo.type === 'percent'">
-                  {{ coupon.couponInfo.value }}折优惠
-                </div>
-                <div class="coupon-type" v-else>
-                  免配送费
+                <div class="coupon-type">
+                  {{ getCouponTypeLabel(coupon.couponInfo) }}
                 </div>
               </div>
               <div class="coupon-right">
                 <div class="coupon-name">{{ coupon.couponInfo.name }}</div>
                 <div class="coupon-description">{{ coupon.couponInfo.description }}</div>
-                <div class="coupon-time">
-                  使用时间：{{ formatTime(coupon.useTime) }}
-                </div>
-                <div class="coupon-order">
-                  订单号：{{ coupon.orderId }}
+                <div class="coupon-meta">
+                  <div class="coupon-time">
+                    使用时间：{{ formatTime(coupon.useTime) }}
+                  </div>
+                  <div class="coupon-order" v-if="coupon.orderId">
+                    订单号：{{ coupon.orderId }}
+                  </div>
                 </div>
               </div>
               <div class="coupon-overlay">
@@ -117,19 +156,13 @@
               :key="coupon.id"
               class="coupon-card expired"
             >
-              <div class="coupon-left">
+              <div class="coupon-left gray">
                 <div class="coupon-value">
-                  <span class="currency">¥</span>
-                  <span class="value">{{ coupon.couponInfo.value }}</span>
+                  <span class="unit">{{ getCouponValueDisplay(coupon.couponInfo).unit }}</span>
+                  <span class="value">{{ getCouponValueDisplay(coupon.couponInfo).value }}</span>
                 </div>
-                <div class="coupon-type" v-if="coupon.couponInfo.type === 'discount'">
-                  满{{ coupon.couponInfo.minAmount }}减{{ coupon.couponInfo.value }}
-                </div>
-                <div class="coupon-type" v-else-if="coupon.couponInfo.type === 'percent'">
-                  {{ coupon.couponInfo.value }}折优惠
-                </div>
-                <div class="coupon-type" v-else>
-                  免配送费
+                <div class="coupon-type">
+                  {{ getCouponTypeLabel(coupon.couponInfo) }}
                 </div>
               </div>
               <div class="coupon-right">
@@ -158,60 +191,96 @@
     <el-dialog
       v-model="couponCenterVisible"
       title="优惠券中心"
-      width="800px"
+      width="850px"
       :close-on-click-modal="false"
+      custom-class="coupon-center-dialog"
     >
       <div class="coupon-center-content">
+        <div class="coupon-center-tabs">
+          <div 
+            v-for="tab in couponCenterTabs" 
+            :key="tab.value"
+            class="coupon-center-tab"
+            :class="{ active: activeCouponCenterTab === tab.value }"
+            @click="activeCouponCenterTab = tab.value"
+          >
+            {{ tab.label }}
+          </div>
+        </div>
+        
         <div class="coupon-center-list">
           <div
-            v-for="coupon in availableCoupons"
+            v-for="coupon in filteredCenterCoupons"
             :key="coupon.id"
             class="coupon-center-card"
-            :class="{ 'vip-only': coupon.isVipOnly }"
+            :class="{ 
+              'vip-only': coupon.isVipOnly, 
+              'low-stock': coupon.stock - coupon.usedCount < 10,
+              'out-of-stock': coupon.stock - coupon.usedCount <= 0
+            }"
           >
-            <div class="coupon-center-left">
+            <div class="coupon-center-left" :class="{ 'gray': coupon.stock - coupon.usedCount <= 0 }">
               <div class="coupon-center-value">
-                <span class="currency" v-if="coupon.type === 'discount'">¥</span>
+                <span class="unit" v-if="coupon.type === 'discount' || coupon.type === 'cash'">¥</span>
                 <span class="value">{{ coupon.value }}</span>
-                <span class="type" v-if="coupon.type === 'percent'">折</span>
+                <span class="unit" v-if="coupon.type === 'percent'">折</span>
+                <span class="unit" v-if="coupon.type === 'freeShipping'">运费</span>
               </div>
-              <div class="coupon-center-type" v-if="coupon.type === 'discount'">
-                满{{ coupon.minAmount }}可用
-              </div>
-              <div class="coupon-center-type" v-else-if="coupon.type === 'percent'">
-                最低消费{{ coupon.minAmount }}元
-              </div>
-              <div class="coupon-center-type" v-else>
-                满{{ coupon.minAmount }}免配送费
+              <div class="coupon-center-type">
+                <template v-if="coupon.type === 'discount' || coupon.type === 'cash'">
+                  满{{ coupon.minAmount }}可用
+                </template>
+                <template v-else-if="coupon.type === 'percent'">
+                  最低消费{{ coupon.minAmount }}元
+                </template>
+                <template v-else>
+                  满{{ coupon.minAmount }}免运费
+                </template>
               </div>
             </div>
             <div class="coupon-center-right">
-              <div class="coupon-center-name">{{ coupon.name }}</div>
+              <div class="coupon-center-header">
+                <div class="coupon-center-name">{{ coupon.name }}</div>
+                <div class="coupon-center-tags">
+                  <el-tag v-if="coupon.isVipOnly" type="warning" size="small">VIP专享</el-tag>
+                  <el-tag v-if="coupon.isNewUserOnly" type="danger" size="small">新用户</el-tag>
+                  <el-tag v-if="coupon.canStack" type="success" size="small">可叠加</el-tag>
+                </div>
+              </div>
               <div class="coupon-center-description">{{ coupon.description }}</div>
-              <div class="coupon-center-stock">
-                剩余：{{ coupon.stock - coupon.usedCount }} 张
+              <div class="coupon-center-meta">
+                <div class="coupon-center-time">
+                  <el-icon><Clock /></el-icon>
+                  {{ formatTime(coupon.startTime) }} - {{ formatTime(coupon.endTime) }}
+                </div>
+                <div class="coupon-center-stock">
+                  <el-icon><Box /></el-icon>
+                  剩余：<span :class="{ 'low': coupon.stock - coupon.usedCount < 10 }">{{ coupon.stock - coupon.usedCount }}</span> 张
+                </div>
               </div>
               <div class="coupon-center-actions">
-                <el-button
-                  v-if="!isCouponReceived(coupon.id)"
-                  type="primary"
-                  size="small"
-                  :disabled="coupon.stock - coupon.usedCount <= 0"
-                  @click="receiveCoupon(coupon)"
-                >
-                  {{ coupon.stock - coupon.usedCount <= 0 ? '已抢光' : '立即领取' }}
-                </el-button>
+                <template v-if="!isCouponReceived(coupon.id)">
+                  <el-button
+                    type="primary"
+                    size="small"
+                    :disabled="!canReceiveCoupon(coupon) || coupon.stock - coupon.usedCount <= 0"
+                    @click="receiveCoupon(coupon)"
+                  >
+                    {{ coupon.stock - coupon.usedCount <= 0 ? '已抢光' : '立即领取' }}
+                  </el-button>
+                  <el-tooltip v-if="!canReceiveCoupon(coupon)" :content="getReceiveReason(coupon)" placement="top">
+                    <el-icon class="hint-icon"><QuestionFilled /></el-icon>
+                  </el-tooltip>
+                </template>
                 <el-tag v-else type="success" size="small">
+                  <el-icon><Check /></el-icon>
                   已领取
                 </el-tag>
               </div>
-              <el-tag v-if="coupon.isVipOnly" type="warning" size="small" class="vip-tag">
-                VIP专享
-              </el-tag>
             </div>
           </div>
 
-          <div v-if="availableCoupons.length === 0" class="empty-state">
+          <div v-if="filteredCenterCoupons.length === 0" class="empty-state">
             <div class="empty-icon">
               <el-icon :size="64"><Ticket /></el-icon>
             </div>
@@ -227,16 +296,37 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Ticket } from '@element-plus/icons-vue'
+import { ArrowLeft, Ticket, Clock, Warning, Box, Check, QuestionFilled } from '@element-plus/icons-vue'
 import { 
   mockCoupons, 
   mockUserCoupons, 
-  mockUserVips 
+  mockUserVips,
+  mockCategories as categories
 } from '../../../data/mockData'
+import {
+  loadUserCouponsFromLocalStorage,
+  saveUserCouponsToLocalStorage,
+  isCouponValid,
+  isCouponExpired,
+  getUnavailableReason,
+  getCouponTypeLabel,
+  getCouponValueDisplay,
+  getScopeDisplay,
+  isVipActive
+} from '../../../utils/couponUtils'
 
 const router = useRouter()
 const activeTab = ref('unused')
 const couponCenterVisible = ref(false)
+const activeCouponCenterTab = ref('all')
+
+const couponCenterTabs = [
+  { label: '全部', value: 'all' },
+  { label: '满减券', value: 'discount' },
+  { label: '折扣券', value: 'percent' },
+  { label: '免运费', value: 'freeShipping' },
+  { label: 'VIP专享', value: 'vip' }
+]
 
 const currentUser = computed(() => {
   const user = localStorage.getItem('user')
@@ -247,35 +337,89 @@ const currentUserVip = computed(() => {
   return mockUserVips.find(v => v.userId === 1)
 })
 
+const isUserVipActive = computed(() => {
+  return isVipActive(currentUserVip.value)
+})
+
 const userCoupons = computed(() => {
-  return mockUserCoupons.filter(c => c.userId === 1).map(coupon => ({
-    ...coupon,
-    couponInfo: mockCoupons.find(c => c.id === coupon.couponId) || {}
-  }))
+  return mockUserCoupons
+    .filter(c => c.userId === 1)
+    .map(coupon => ({
+      ...coupon,
+      couponInfo: mockCoupons.find(c => c.id === coupon.couponId) || {}
+    }))
+    .filter(c => c.couponInfo.id)
 })
 
 const unusedCoupons = computed(() => {
   return userCoupons.value.filter(c => c.status === 'unused')
 })
 
+const unusedCouponsWithValidation = computed(() => {
+  return unusedCoupons.value.map(coupon => {
+    const reasons = getUnavailableReason(
+      coupon,
+      0,
+      [],
+      categories,
+      currentUserVip.value,
+      [],
+      []
+    )
+    
+    const isAvailable = isCouponValid(coupon) && reasons.length === 0
+    const valueDisplay = getCouponValueDisplay(coupon.couponInfo)
+    
+    return {
+      ...coupon,
+      isAvailable,
+      unavailableReasons: reasons,
+      valueDisplay
+    }
+  }).sort((a, b) => {
+    if (a.isAvailable !== b.isAvailable) {
+      return a.isAvailable ? -1 : 1
+    }
+    return (a.couponInfo?.priority || 2) - (b.couponInfo?.priority || 2)
+  })
+})
+
+const validUnusedCount = computed(() => {
+  return unusedCouponsWithValidation.value.filter(c => c.isAvailable).length
+})
+
 const usedCoupons = computed(() => {
   return userCoupons.value.filter(c => c.status === 'used')
 })
 
+const usedCount = computed(() => usedCoupons.value.length)
+
 const expiredCoupons = computed(() => {
-  return userCoupons.value.filter(c => c.status === 'expired')
+  return userCoupons.value.filter(c => c.status === 'expired' || (c.status === 'unused' && isCouponExpired(c)))
 })
 
+const expiredCount = computed(() => expiredCoupons.value.length)
+
 const availableCoupons = computed(() => {
-  let coupons = mockCoupons.filter(c => c.status === 1)
+  let coupons = [...mockCoupons].filter(c => c.status === 1 && isCouponValid({ couponInfo: c }))
   
-  if (currentUserVip.value && currentUserVip.value.level >= 1) {
-    coupons = coupons.filter(c => !c.isVipOnly || (c.isVipOnly && currentUserVip.value.level >= 1))
-  } else {
-    coupons = coupons.filter(c => !c.isVipOnly)
-  }
+  coupons = coupons.map(c => ({
+    ...c,
+    canReceive: canReceiveCoupon(c),
+    receiveReason: getReceiveReason(c)
+  }))
   
   return coupons
+})
+
+const filteredCenterCoupons = computed(() => {
+  if (activeCouponCenterTab.value === 'all') {
+    return availableCoupons.value
+  }
+  if (activeCouponCenterTab.value === 'vip') {
+    return availableCoupons.value.filter(c => c.isVipOnly)
+  }
+  return availableCoupons.value.filter(c => c.type === activeCouponCenterTab.value)
 })
 
 const goBack = () => {
@@ -295,14 +439,55 @@ const isCouponReceived = (couponId) => {
   return mockUserCoupons.some(c => c.userId === 1 && c.couponId === couponId && c.status === 'unused')
 }
 
+const canReceiveCoupon = (coupon) => {
+  if (coupon.isVipOnly && !isUserVipActive.value) {
+    return false
+  }
+  
+  const receivedCount = mockUserCoupons.filter(c => 
+    c.userId === 1 && c.couponId === coupon.id
+  ).length
+  
+  if (coupon.usageLimit && receivedCount >= coupon.usageLimit) {
+    return false
+  }
+  
+  return true
+}
+
+const getReceiveReason = (coupon) => {
+  if (coupon.isVipOnly && !isUserVipActive.value) {
+    return '该优惠券为VIP专享，请先升级为VIP会员'
+  }
+  
+  const receivedCount = mockUserCoupons.filter(c => 
+    c.userId === 1 && c.couponId === coupon.id
+  ).length
+  
+  if (coupon.usageLimit && receivedCount >= coupon.usageLimit) {
+    return `该优惠券每人限领${coupon.usageLimit}张，您已达上限`
+  }
+  
+  return ''
+}
+
 const receiveCoupon = (coupon) => {
-  if (coupon.isVipOnly && (!currentUserVip.value || currentUserVip.value.level < 1)) {
+  if (coupon.isVipOnly && !isUserVipActive.value) {
     ElMessage.warning('该优惠券为VIP专享，请先升级为VIP会员')
     return
   }
 
   if (isCouponReceived(coupon.id)) {
     ElMessage.warning('您已经领取过该优惠券了')
+    return
+  }
+
+  const receivedCount = mockUserCoupons.filter(c => 
+    c.userId === 1 && c.couponId === coupon.id
+  ).length
+  
+  if (coupon.usageLimit && receivedCount >= coupon.usageLimit) {
+    ElMessage.warning(`该优惠券每人限领${coupon.usageLimit}张，您已达上限`)
     return
   }
 
@@ -321,12 +506,25 @@ const receiveCoupon = (coupon) => {
       userId: 1,
       couponId: coupon.id,
       status: 'unused',
-      receiveTime: new Date().toLocaleString(),
+      receiveTime: new Date().toLocaleString('zh-CN', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).replace(/\//g, '-'),
       useTime: null,
       orderId: null
     }
     mockUserCoupons.push(newUserCoupon)
-    coupon.usedCount++
+    
+    const originalCoupon = mockCoupons.find(c => c.id === coupon.id)
+    if (originalCoupon) {
+      originalCoupon.usedCount++
+    }
+    
+    saveUserCouponsToLocalStorage()
     
     ElMessage.success('领取成功！')
   }).catch(() => {})
@@ -335,9 +533,27 @@ const receiveCoupon = (coupon) => {
 const useCoupon = (coupon) => {
   ElMessage.info('正在跳转到首页使用优惠券...')
   setTimeout(() => {
-    router.push('/home')
+    router.push({
+      path: '/home',
+      query: { couponId: coupon.id }
+    })
   }, 1000)
 }
+
+onMounted(() => {
+  loadUserCouponsFromLocalStorage()
+  
+  for (const uc of mockUserCoupons) {
+    if (uc.status === 'unused') {
+      const coupon = mockCoupons.find(c => c.id === uc.couponId)
+      if (coupon && isCouponExpired({ couponInfo: coupon })) {
+        uc.status = 'expired'
+      }
+    }
+  }
+  
+  saveUserCouponsToLocalStorage()
+})
 </script>
 
 <style scoped>
@@ -373,6 +589,33 @@ const useCoupon = (coupon) => {
   margin: 0;
 }
 
+.coupons-stats {
+  background: white;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #667eea;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: #64748b;
+}
+
 .coupons-tabs {
   flex: 1;
   padding: 20px;
@@ -383,6 +626,14 @@ const useCoupon = (coupon) => {
 
 :deep(.el-tabs__nav-wrap) {
   margin-bottom: 20px;
+}
+
+:deep(.el-tabs__item.is-active) {
+  color: #667eea;
+}
+
+:deep(.el-tabs__active-bar) {
+  background-color: #667eea;
 }
 
 .coupons-list {
@@ -406,9 +657,17 @@ const useCoupon = (coupon) => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
+.coupon-card.available {
+  border-left: 4px solid #667eea;
+}
+
+.coupon-card.unavailable {
+  border-left: 4px solid #cbd5e1;
+}
+
 .coupon-card.used,
 .coupon-card.expired {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .coupon-left {
@@ -421,6 +680,10 @@ const useCoupon = (coupon) => {
   padding: 20px;
   color: white;
   position: relative;
+}
+
+.coupon-left.gray {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
 }
 
 .coupon-left::before,
@@ -445,11 +708,11 @@ const useCoupon = (coupon) => {
 .coupon-value {
   display: flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 2px;
   margin-bottom: 8px;
 }
 
-.coupon-value .currency {
+.coupon-value .unit {
   font-size: 16px;
   font-weight: 600;
 }
@@ -462,7 +725,7 @@ const useCoupon = (coupon) => {
 
 .coupon-type {
   font-size: 13px;
-  opacity: 0.9;
+  opacity: 0.95;
   text-align: center;
 }
 
@@ -494,23 +757,58 @@ const useCoupon = (coupon) => {
   bottom: -8px;
 }
 
+.coupon-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.coupon-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 .coupon-name {
   font-size: 16px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 8px;
+  flex: 1;
+}
+
+.coupon-tags {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .coupon-description {
   font-size: 14px;
   color: #64748b;
-  margin-bottom: 12px;
+  line-height: 1.5;
 }
 
-.coupon-time {
+.coupon-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 12px;
+}
+
+.coupon-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.coupon-time,
+.coupon-scope {
   font-size: 13px;
   color: #94a3b8;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .coupon-order {
@@ -520,7 +818,14 @@ const useCoupon = (coupon) => {
 
 .coupon-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+.hint-icon {
+  font-size: 18px;
+  color: #94a3b8;
+  cursor: help;
 }
 
 .coupon-overlay {
@@ -541,6 +846,9 @@ const useCoupon = (coupon) => {
   font-weight: 700;
   color: white;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 24px;
+  border-radius: 8px;
 }
 
 .empty-state {
@@ -563,15 +871,53 @@ const useCoupon = (coupon) => {
   margin: 0 0 20px 0;
 }
 
+.coupon-center-dialog :deep(.el-dialog__header) {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  margin: 0;
+}
+
+.coupon-center-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
 .coupon-center-content {
-  max-height: 600px;
+  max-height: 550px;
   overflow-y: auto;
+}
+
+.coupon-center-tabs {
+  display: flex;
+  padding: 12px 20px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 8px;
+}
+
+.coupon-center-tab {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.coupon-center-tab:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.coupon-center-tab.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .coupon-center-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  padding: 20px;
 }
 
 .coupon-center-card {
@@ -595,6 +941,15 @@ const useCoupon = (coupon) => {
   border-color: #f59e0b;
 }
 
+.coupon-center-card.low-stock {
+  border-color: #f97316;
+}
+
+.coupon-center-card.out-of-stock {
+  border-color: #cbd5e1;
+  opacity: 0.7;
+}
+
 .coupon-center-left {
   width: 140px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -604,6 +959,11 @@ const useCoupon = (coupon) => {
   justify-content: center;
   padding: 16px;
   color: white;
+  position: relative;
+}
+
+.coupon-center-left.gray {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
 }
 
 .coupon-center-card.vip-only .coupon-center-left {
@@ -617,7 +977,7 @@ const useCoupon = (coupon) => {
   margin-bottom: 6px;
 }
 
-.coupon-center-value .currency {
+.coupon-center-value .unit {
   font-size: 14px;
   font-weight: 600;
 }
@@ -628,53 +988,71 @@ const useCoupon = (coupon) => {
   line-height: 1;
 }
 
-.coupon-center-value .type {
-  font-size: 14px;
-  font-weight: 600;
-}
-
 .coupon-center-type {
   font-size: 12px;
-  opacity: 0.9;
+  opacity: 0.95;
   text-align: center;
 }
 
 .coupon-center-right {
   flex: 1;
-  padding: 16px;
+  padding: 16px 20px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+}
+
+.coupon-center-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
 }
 
 .coupon-center-name {
   font-size: 15px;
   font-weight: 600;
   color: #1e293b;
-  margin-bottom: 6px;
+  flex: 1;
+}
+
+.coupon-center-tags {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .coupon-center-description {
   font-size: 13px;
   color: #64748b;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
+.coupon-center-meta {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+
+.coupon-center-time,
 .coupon-center-stock {
   font-size: 12px;
   color: #94a3b8;
-  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.coupon-center-stock span.low {
+  color: #f97316;
+  font-weight: 600;
 }
 
 .coupon-center-actions {
   display: flex;
-  justify-content: flex-end;
-}
-
-.vip-tag {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  align-items: center;
+  gap: 8px;
 }
 
 @media (max-width: 768px) {
@@ -682,6 +1060,15 @@ const useCoupon = (coupon) => {
     padding: 12px 16px;
     flex-wrap: wrap;
     gap: 12px;
+  }
+
+  .coupons-stats {
+    padding: 12px 16px;
+    gap: 24px;
+  }
+
+  .stat-value {
+    font-size: 22px;
   }
 
   .coupons-tabs {
@@ -707,6 +1094,26 @@ const useCoupon = (coupon) => {
     display: none;
   }
 
+  .coupon-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .coupon-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .coupon-actions {
+    width: 100%;
+  }
+
+  .coupon-actions .el-button {
+    flex: 1;
+  }
+
   .coupon-center-card {
     flex-direction: column;
   }
@@ -714,6 +1121,16 @@ const useCoupon = (coupon) => {
   .coupon-center-left {
     width: 100%;
     padding: 12px;
+  }
+
+  .coupon-center-tabs {
+    overflow-x: auto;
+    padding: 12px 16px;
+  }
+
+  .coupon-center-tab {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
 }
 </style>
