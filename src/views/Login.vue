@@ -114,27 +114,25 @@ const rules = {
   ]
 }
 
-const handleLogin = async () => {
-  if (!formRef.value) return
-  
-  try {
-    await formRef.value.validate()
-    loading.value = true
-    
-    setTimeout(() => {
-      loading.value = false
-      
-      if (form.username === 'admin' && form.password === '123456') {
-        localStorage.setItem('user', JSON.stringify({ username: form.username }))
-        ElMessage.success('登录成功！')
-        router.push('/home')
-      } else {
-        ElMessage.error('用户名或密码错误！演示账号: admin / 123456')
-      }
-    }, 1000)
-  } catch {
-    // 表单验证失败
+const handleLogin = () => {
+  if (!form.username || !form.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
   }
+  
+  loading.value = true
+  
+  setTimeout(() => {
+    loading.value = false
+    
+    if (form.username === 'admin' && form.password === '123456') {
+      localStorage.setItem('user', JSON.stringify({ username: form.username }))
+      ElMessage.success('登录成功！')
+      router.push('/home')
+    } else {
+      ElMessage.error('用户名或密码错误！演示账号: admin / 123456')
+    }
+  }, 500)
 }
 </script>
 

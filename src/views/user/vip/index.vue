@@ -10,14 +10,41 @@
       </div>
     </header>
 
-    <div class="vip-banner">
+    <div class="vip-banner" :class="{ 'expired': vipDaysRemaining === 0, 'active': isVipActive }">
       <div class="banner-content">
         <div class="vip-info">
           <div class="vip-icon">{{ currentVip?.vipInfo?.icon || '👤' }}</div>
           <div class="vip-details">
-            <div class="vip-name">{{ currentVip?.vipInfo?.name || '普通会员' }}</div>
+            <div class="vip-name-row">
+              <span class="vip-name">{{ currentVip?.vipInfo?.name || '普通会员' }}</span>
+              <el-tag 
+                v-if="isVipActive" 
+                type="success" 
+                size="small"
+                class="vip-status-tag"
+              >
+                已激活
+              </el-tag>
+              <el-tag 
+                v-else-if="vipDaysRemaining === 0 && currentVip?.level > 0" 
+                type="danger" 
+                size="small"
+                class="vip-status-tag"
+              >
+                已过期
+              </el-tag>
+            </div>
             <div class="vip-discount">
               专属折扣：<span class="discount-value">{{ (currentVip?.discount || 1) * 10 }}折</span>
+            </div>
+            <div class="vip-validity" v-if="currentVip?.endTime && currentVip?.level > 0">
+              <el-icon><Clock /></el-icon>
+              <span v-if="vipDaysRemaining > 0">
+                有效期至：{{ formatDate(currentVip?.endTime) }}（剩余{{ vipDaysRemaining }}天）
+              </span>
+              <span v-else class="expired-text">
+                已过期，请续费
+              </span>
             </div>
           </div>
         </div>
@@ -171,38 +198,100 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Check } from '@element-plus/icons-vue'
+import { ArrowLeft, Check, Clock } from '@element-plus/icons-vue'
 import { 
   mockVipLevels, 
   mockUserVips, 
-  mockVipBenefits 
+  mockVipBenefits,
+  mockUsers
 } from '../../../data/mockData'
 
 const router = useRouter()
 const activeTab = ref('benefits')
+const loading = ref(false)
+
+const VIP_STORAGE_KEY = 'userVipInfo'
 
 const currentUser = computed(() => {
   const user = localStorage.getItem('user')
   return user ? JSON.parse(user) : null
 })
 
+const currentUserId = computed(() => {
+  return currentUser.value?.id || 1
+})
+
 const vipLevels = computed(() => {
   return [...mockVipLevels].sort((a, b) => a.level - b.level)
 })
 
-const currentVip = computed(() => {
-  const userVip = mockUserVips.find(v => v.userId === 1)
-  if (userVip) {
-    const vipInfo = mockVipLevels.find(l => l.id === userVip.vipLevelId)
-    return {
-      ...userVip,
-      vipInfo
-    }
+const checkVipExpiration = (userVip) => {
+  if (!userVip) return false
+  if (!userVip.endTime) return true
+  
+  const now = new Date()
+  const endTime = new Date(userVip.endTime)
+  
+  if (now > endTime && userVip.level > 0) {
+    userVip.vipLevelId = 1
+    userVip.vipName = '普通会员'
+    userVip.level = 0
+    userVip.discount = 1.0
+    userVip.isActive = 0
+    saveVipToLocalStorage(userVip)
+    ElMessage.warning('您的会员已过期，已自动降级为普通会员')
+    return false
   }
-  return null
+  return userVip.isActive === 1
+}
+
+const currentVip = computed(() => {
+  let userVip = mockUserVips.find(v => v.userId === currentUserId.value)
+  
+  if (!userVip) {
+    const defaultVip = {
+      id: mockUserVips.length + 1,
+      userId: currentUserId.value,
+      vipLevelId: 1,
+      vipName: '普通会员',
+      level: 0,
+      discount: 1.0,
+      startTime: new Date().toISOString(),
+      endTime: null,
+      isActive: 1,
+      totalSpent: 0,
+      totalOrders: 0,
+      lastOrderTime: null
+    }
+    mockUserVips.push(defaultVip)
+    userVip = defaultVip
+  }
+  
+  checkVipExpiration(userVip)
+  
+  const vipInfo = mockVipLevels.find(l => l.id === userVip.vipLevelId)
+  return {
+    ...userVip,
+    vipInfo
+  }
+})
+
+const isVipActive = computed(() => {
+  return currentVip.value?.isActive === 1 && currentVip.value?.level > 0
+})
+
+const vipDaysRemaining = computed(() => {
+  if (!currentVip.value?.endTime) return null
+  
+  const now = new Date()
+  const endTime = new Date(currentVip.value.endTime)
+  const diffMs = endTime - now
+  
+  if (diffMs <= 0) return 0
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
 })
 
 const nextVipLevel = computed(() => {
@@ -228,11 +317,13 @@ const upgradeOptions = ref([
     id: 1,
     name: '月度会员',
     duration: '1个月',
+    durationDays: 30,
     price: 29,
     originalPrice: 39,
+    targetLevel: 1,
     recommended: false,
     benefits: [
-      '专属9折优惠',
+      '专属9.5折优惠',
       '积分加倍获取',
       '每月1张优惠券',
       '生日福利'
@@ -242,11 +333,13 @@ const upgradeOptions = ref([
     id: 2,
     name: '季度会员',
     duration: '3个月',
+    durationDays: 90,
     price: 79,
     originalPrice: 117,
+    targetLevel: 2,
     recommended: true,
     benefits: [
-      '专属8.5折优惠',
+      '专属9折优惠',
       '积分加倍获取',
       '每月2张优惠券',
       '生日福利',
@@ -258,11 +351,13 @@ const upgradeOptions = ref([
     id: 3,
     name: '年度会员',
     duration: '12个月',
+    durationDays: 365,
     price: 299,
     originalPrice: 468,
+    targetLevel: 3,
     recommended: false,
     benefits: [
-      '专属8折优惠',
+      '专属8.5折优惠',
       '积分3倍获取',
       '每月3张优惠券',
       '生日福利',
@@ -274,13 +369,114 @@ const upgradeOptions = ref([
   }
 ])
 
+const saveVipToLocalStorage = (vipInfo) => {
+  const vipData = {
+    ...vipInfo,
+    lastSyncTime: new Date().toISOString()
+  }
+  localStorage.setItem(VIP_STORAGE_KEY, JSON.stringify(vipData))
+  
+  const user = currentUser.value
+  if (user) {
+    user.vipLevel = vipInfo.level
+    user.vipName = vipInfo.vipName
+    user.isVip = vipInfo.level > 0
+    localStorage.setItem('user', JSON.stringify(user))
+  }
+}
+
+const loadVipFromLocalStorage = () => {
+  const stored = localStorage.getItem(VIP_STORAGE_KEY)
+  if (stored) {
+    try {
+      const vipData = JSON.parse(stored)
+      const userVip = mockUserVips.find(v => v.userId === currentUserId.value)
+      if (userVip) {
+        Object.assign(userVip, vipData)
+      }
+    } catch (e) {
+      console.error('Failed to load VIP info from localStorage', e)
+    }
+  }
+}
+
+const getTargetVipLevel = (targetLevelNum) => {
+  return vipLevels.value.find(l => l.level === targetLevelNum) || vipLevels.value[0]
+}
+
+const handleUpgrade = (option) => {
+  const targetLevel = getTargetVipLevel(option.targetLevel)
+  
+  let message = `确定要开通"${option.name}"吗？\n\n`
+  message += `价格：¥${option.price}\n`
+  if (option.originalPrice > option.price) {
+    message += `原价：¥${option.originalPrice}（已省¥${option.originalPrice - option.price}）\n`
+  }
+  message += `有效期：${option.duration}\n`
+  message += `会员等级：${targetLevel.name}\n`
+  message += `专属折扣：${targetLevel.discount * 10}折\n\n`
+  message += `开通后将立即享受对应会员权益。`
+
+  ElMessageBox.confirm(
+    message,
+    '确认开通会员',
+    {
+      confirmButtonText: '确认支付',
+      cancelButtonText: '取消',
+      type: 'info'
+    }
+  ).then(() => {
+    loading.value = true
+    
+    setTimeout(() => {
+      const startTime = new Date()
+      const endTime = new Date(startTime.getTime() + option.durationDays * 24 * 60 * 60 * 1000)
+      
+      let userVip = mockUserVips.find(v => v.userId === currentUserId.value)
+      
+      if (!userVip) {
+        userVip = {
+          id: mockUserVips.length + 1,
+          userId: currentUserId.value,
+          totalSpent: 0,
+          totalOrders: 0,
+          lastOrderTime: null
+        }
+        mockUserVips.push(userVip)
+      }
+      
+      const currentMaxLevel = Math.max(userVip.level || 0, option.targetLevel)
+      const finalLevel = vipLevels.value.find(l => l.level === currentMaxLevel) || targetLevel
+      
+      userVip.vipLevelId = finalLevel.id
+      userVip.vipName = finalLevel.name
+      userVip.level = finalLevel.level
+      userVip.discount = finalLevel.discount
+      userVip.startTime = startTime.toISOString()
+      userVip.endTime = endTime.toISOString()
+      userVip.isActive = 1
+      
+      saveVipToLocalStorage(userVip)
+      
+      loading.value = false
+      
+      ElMessage({
+        message: `开通成功！您已升级为${finalLevel.name}`,
+        type: 'success',
+        duration: 3000
+      })
+      
+    }, 800)
+  }).catch(() => {})
+}
+
 const goBack = () => {
   router.back()
 }
 
 const isBenefitUnlocked = (benefit) => {
   if (!currentVip.value) return false
-  return currentVip.value.vipInfo?.level >= benefit.minLevel
+  return currentVip.value.vipInfo?.level >= benefit.minLevel && isVipActive.value
 }
 
 const getRequiredLevel = (minLevel) => {
@@ -288,30 +484,19 @@ const getRequiredLevel = (minLevel) => {
   return level ? level.name : ''
 }
 
-const handleUpgrade = (option) => {
-  ElMessageBox.confirm(
-    `确定要开通"${option.name}"吗？\n\n价格：¥${option.price}\n原价：¥${option.originalPrice || option.price}\n\n开通后将立即享受对应会员权益。`,
-    '确认开通',
-    {
-      confirmButtonText: '确认支付',
-      cancelButtonText: '取消',
-      type: 'info'
-    }
-  ).then(() => {
-    ElMessage.success('开通成功！您的会员等级已提升')
-    
-    if (currentVip.value) {
-      const currentLevel = currentVip.value.vipInfo?.level || 0
-      const nextLevel = vipLevels.value.find(l => l.level > currentLevel)
-      if (nextLevel) {
-        currentVip.value.vipLevelId = nextLevel.id
-        currentVip.value.vipName = nextLevel.name
-        currentVip.value.level = nextLevel.level
-        currentVip.value.discount = nextLevel.discount
-      }
-    }
-  }).catch(() => {})
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
 }
+
+onMounted(() => {
+  loadVipFromLocalStorage()
+})
 </script>
 
 <style scoped>
@@ -350,6 +535,15 @@ const handleUpgrade = (option) => {
 .vip-banner {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.vip-banner.expired {
+  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+}
+
+.vip-banner.active {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
 }
 
 .banner-content {
@@ -384,10 +578,33 @@ const handleUpgrade = (option) => {
   gap: 8px;
 }
 
+.vip-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .vip-name {
   font-size: 24px;
   font-weight: 700;
   color: white;
+}
+
+.vip-status-tag {
+  margin-left: 8px;
+}
+
+.vip-validity {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.vip-validity .expired-text {
+  color: #fecaca;
+  font-weight: 600;
 }
 
 .vip-discount {
