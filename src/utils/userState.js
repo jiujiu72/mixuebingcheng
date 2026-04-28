@@ -51,6 +51,35 @@ const dispatchVipUpdatedEvent = () => {
   }
 }
 
+const validateAndFixVipData = (userVip) => {
+  if (!userVip) return false
+  
+  const level = userVip.level
+  const vipLevelId = userVip.vipLevelId
+  
+  const levelInfo = getVipLevelByLevel(level)
+  
+  if (!levelInfo) {
+    const defaultLevel = getVipLevelByLevel(0)
+    if (defaultLevel) {
+      userVip.vipLevelId = defaultLevel.id
+      userVip.vipName = defaultLevel.name
+      userVip.level = defaultLevel.level
+      userVip.discount = defaultLevel.discount
+    }
+    return true
+  }
+  
+  if (levelInfo.id !== vipLevelId) {
+    userVip.vipLevelId = levelInfo.id
+    userVip.vipName = levelInfo.name
+    userVip.discount = levelInfo.discount
+    return true
+  }
+  
+  return false
+}
+
 export const getVipLevelWeight = (levelNum) => {
   return VIP_LEVEL_WEIGHTS[levelNum] || 0
 }
@@ -164,6 +193,8 @@ export const checkVipExpiration = (userId) => {
 export const saveVipToLocalStorage = (vipInfo) => {
   if (!vipInfo) return
   
+  const needsFix = validateAndFixVipData(vipInfo)
+  
   const vipData = {
     ...vipInfo,
     lastSyncTime: new Date().toISOString()
@@ -206,14 +237,17 @@ export const loadVipFromLocalStorage = (userId) => {
         
         if (isHigherOrEqualLevel(storedLevel, currentLevel)) {
           Object.assign(userVip, vipData)
+          validateAndFixVipData(userVip)
         } else {
           console.warn('忽略低等级会员数据，保留当前高等级会员状态')
         }
       } else {
-        mockUserVips.push({
+        const newVip = {
           ...vipData,
           userId: uid
-        })
+        }
+        validateAndFixVipData(newVip)
+        mockUserVips.push(newVip)
       }
     } catch (e) {
       console.error('Failed to load VIP info from localStorage:', e)
@@ -333,6 +367,8 @@ export const canPurchaseVipOption = (option, userId) => {
     }
   }
   
+  validateAndFixVipData(userVip)
+  
   const currentLevel = userVip.level
   const currentLevelInfo = getVipLevelByLevel(currentLevel)
   const currentLevelName = currentLevelInfo?.name || VIP_LEVEL_NAMES[currentLevel] || '会员'
@@ -408,13 +444,15 @@ export const getCurrentUserVipInfo = (userId) => {
     }
   }
   
+  validateAndFixVipData(userVip)
+  
   if (isProtectedLevel(userVip.level)) {
     userVip.isActive = 1
   } else {
     checkVipExpiration(uid)
   }
   
-  const vipInfo = getVipLevelById(userVip.vipLevelId) || getVipLevelByLevel(userVip.level)
+  const vipInfo = getVipLevelByLevel(userVip.level)
   
   return {
     ...userVip,
@@ -441,6 +479,8 @@ export const extendVipDuration = (option, userId) => {
   if (!userVip) {
     return upgradeVip(option, userId)
   }
+  
+  validateAndFixVipData(userVip)
   
   const currentLevel = userVip.level
   
