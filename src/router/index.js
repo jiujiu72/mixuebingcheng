@@ -15,10 +15,16 @@ import DeliveryManLogin from '../views/DeliveryManLogin.vue'
 import DeliveryMan from '../views/delivery/index.vue'
 import DeliveryDashboard from '../views/delivery/dashboard/index.vue'
 import DeliveryOrders from '../views/delivery/orders/index.vue'
+import DeliveryReviews from '../views/delivery/reviews/index.vue'
 import UserAddress from '../views/user/address/index.vue'
 import UserOrders from '../views/user/orders/index.vue'
 import OrderTracking from '../views/user/tracking/index.vue'
 import UserNotifications from '../views/user/notifications/index.vue'
+import UserCoupons from '../views/user/coupons/index.vue'
+import UserPoints from '../views/user/points/index.vue'
+import UserVip from '../views/user/vip/index.vue'
+import UserFavorites from '../views/user/favorites/index.vue'
+import UserReviews from '../views/user/reviews/index.vue'
 
 const routes = [
   {
@@ -71,6 +77,46 @@ const routes = [
     path: '/user/notifications',
     name: 'UserNotifications',
     component: UserNotifications,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user/coupons',
+    name: 'UserCoupons',
+    component: UserCoupons,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user/points',
+    name: 'UserPoints',
+    component: UserPoints,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user/vip',
+    name: 'UserVip',
+    component: UserVip,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user/favorites',
+    name: 'UserFavorites',
+    component: UserFavorites,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user/reviews',
+    name: 'UserReviews',
+    component: UserReviews,
     meta: {
       requiresAuth: true
     }
@@ -147,6 +193,11 @@ const routes = [
         path: 'orders',
         name: 'DeliveryOrders',
         component: DeliveryOrders
+      },
+      {
+        path: 'reviews',
+        name: 'DeliveryReviews',
+        component: DeliveryReviews
       }
     ]
   }

@@ -122,3 +122,179 @@ export const departments = ['厨房', '前厅', '配送', '管理']
 
 // 职位列表
 export const positions = ['厨师长', '厨师', '帮厨', '收银员', '服务员', '配送员', '店长', '副店长']
+
+// 优惠券系统模拟数据
+export const mockCoupons = [
+  { id: 1, name: '新用户专享券', type: 'discount', value: 20, minAmount: 50, startTime: '2024-01-01 00:00:00', endTime: '2024-12-31 23:59:59', status: 1, description: '新用户专享，满50减20', stock: 100, usedCount: 25 },
+  { id: 2, name: '满减优惠券', type: 'discount', value: 15, minAmount: 80, startTime: '2024-01-01 00:00:00', endTime: '2024-06-30 23:59:59', status: 1, description: '满80减15，全场通用', stock: 500, usedCount: 120 },
+  { id: 3, name: '会员专享券', type: 'discount', value: 25, minAmount: 100, startTime: '2024-01-01 00:00:00', endTime: '2024-12-31 23:59:59', status: 1, description: 'VIP会员专享，满100减25', stock: 200, usedCount: 80, isVipOnly: true },
+  { id: 4, name: '限时折扣券', type: 'percent', value: 80, minAmount: 30, startTime: '2024-04-01 00:00:00', endTime: '2024-04-30 23:59:59', status: 1, description: '8折优惠，最低消费30元', stock: 300, usedCount: 45 },
+  { id: 5, name: '免配送费券', type: 'freeShipping', value: 0, minAmount: 20, startTime: '2024-01-01 00:00:00', endTime: '2024-12-31 23:59:59', status: 1, description: '免配送费，最低消费20元', stock: 1000, usedCount: 300 },
+  { id: 6, name: '过期测试券', type: 'discount', value: 10, minAmount: 50, startTime: '2023-01-01 00:00:00', endTime: '2023-12-31 23:59:59', status: 0, description: '已过期的优惠券，用于测试', stock: 10, usedCount: 10 }
+]
+
+// 用户已领取的优惠券
+export const mockUserCoupons = [
+  { id: 1, userId: 1, couponId: 1, status: 'unused', receiveTime: '2024-01-15 10:30:00', useTime: null, orderId: null },
+  { id: 2, userId: 1, couponId: 2, status: 'unused', receiveTime: '2024-01-20 14:20:00', useTime: null, orderId: null },
+  { id: 3, userId: 1, couponId: 5, status: 'used', receiveTime: '2024-01-10 09:15:00', useTime: '2024-01-15 12:30:00', orderId: 'ORD20240115001' },
+  { id: 4, userId: 2, couponId: 1, status: 'unused', receiveTime: '2024-01-16 11:00:00', useTime: null, orderId: null },
+  { id: 5, userId: 1, couponId: 6, status: 'expired', receiveTime: '2023-12-01 10:00:00', useTime: null, orderId: null }
+]
+
+// 积分系统模拟数据
+// 用户积分信息
+export const mockUserPoints = [
+  { id: 1, userId: 1, totalPoints: 1560, availablePoints: 1250, frozenPoints: 0, historyPoints: 310, lastUpdateTime: '2024-01-16 12:00:00' },
+  { id: 2, userId: 2, totalPoints: 890, availablePoints: 750, frozenPoints: 0, historyPoints: 140, lastUpdateTime: '2024-01-15 13:15:00' },
+  { id: 3, userId: 3, totalPoints: 320, availablePoints: 320, frozenPoints: 0, historyPoints: 0, lastUpdateTime: '2024-01-17 09:15:00' }
+]
+
+// 积分记录
+export const mockPointsHistory = [
+  { id: 1, userId: 1, type: 'earn', points: 100, reason: '订单消费', orderId: 'ORD20240115001', createTime: '2024-01-15 12:30:00' },
+  { id: 2, userId: 1, type: 'earn', points: 50, reason: '每日签到', orderId: null, createTime: '2024-01-15 08:00:00' },
+  { id: 3, userId: 1, type: 'spend', points: -310, reason: '积分兑换', orderId: null, createTime: '2024-01-14 16:45:00' },
+  { id: 4, userId: 1, type: 'earn', points: 80, reason: '订单消费', orderId: 'ORD20240116001', createTime: '2024-01-16 11:20:00' },
+  { id: 5, userId: 2, type: 'earn', points: 70, reason: '订单消费', orderId: 'ORD20240115002', createTime: '2024-01-15 13:15:00' },
+  { id: 6, userId: 2, type: 'earn', points: 50, reason: '每日签到', orderId: null, createTime: '2024-01-15 09:30:00' },
+  { id: 7, userId: 2, type: 'spend', points: -140, reason: '积分兑换', orderId: null, createTime: '2024-01-13 10:00:00' }
+]
+
+// 积分兑换商品
+export const mockPointsGoods = [
+  { id: 1, name: '免费薯条', points: 500, type: 'food', description: '积分兑换免费小份薯条', stock: 100, image: 'https://via.placeholder.com/100x100?text=薯条', status: 1 },
+  { id: 2, name: '5元优惠券', points: 300, type: 'coupon', description: '积分兑换5元无门槛优惠券', stock: 200, image: 'https://via.placeholder.com/100x100?text=优惠券', status: 1 },
+  { id: 3, name: '免费奶茶', points: 800, type: 'food', description: '积分兑换中杯珍珠奶茶', stock: 50, image: 'https://via.placeholder.com/100x100?text=奶茶', status: 1 },
+  { id: 4, name: 'VIP会员月卡', points: 2000, type: 'vip', description: '积分兑换VIP会员月卡', stock: 30, image: 'https://via.placeholder.com/100x100?text=VIP', status: 1 },
+  { id: 5, name: '汉堡套餐', points: 1500, type: 'food', description: '积分兑换经典汉堡套餐', stock: 40, image: 'https://via.placeholder.com/100x100?text=套餐', status: 1 },
+  { id: 6, name: '兑换测试商品', points: 100, type: 'test', description: '用于测试的低积分商品', stock: 0, image: 'https://via.placeholder.com/100x100?text=测试', status: 0 }
+]
+
+// 会员体系模拟数据
+// 会员等级配置
+export const mockVipLevels = [
+  { id: 1, name: '普通会员', level: 0, discount: 1.0, description: '基础会员，无额外折扣', minPoints: 0, icon: '👤', color: '#94a3b8' },
+  { id: 2, name: '银卡会员', level: 1, discount: 0.95, description: '银卡会员，享9.5折优惠', minPoints: 500, icon: '🥈', color: '#94a3b8' },
+  { id: 3, name: '金卡会员', level: 2, discount: 0.9, description: '金卡会员，享9折优惠', minPoints: 2000, icon: '🥇', color: '#f59e0b' },
+  { id: 4, name: '钻石会员', level: 3, discount: 0.85, description: '钻石会员，享8.5折优惠', minPoints: 5000, icon: '💎', color: '#6366f1' },
+  { id: 5, name: '黑钻会员', level: 4, discount: 0.8, description: '黑钻会员，享8折优惠，专属客服', minPoints: 10000, icon: '♠️', color: '#1e293b' }
+]
+
+// 用户会员信息
+export const mockUserVips = [
+  { id: 1, userId: 1, vipLevelId: 2, vipName: '银卡会员', level: 1, discount: 0.95, startTime: '2024-01-01 00:00:00', endTime: '2099-12-31 23:59:59', isActive: 1, totalSpent: 1560, totalOrders: 5, lastOrderTime: '2024-01-16 11:20:00' },
+  { id: 2, userId: 2, vipLevelId: 1, vipName: '普通会员', level: 0, discount: 1.0, startTime: '2024-01-01 00:00:00', endTime: '2099-12-31 23:59:59', isActive: 1, totalSpent: 890, totalOrders: 2, lastOrderTime: '2024-01-15 13:15:00' },
+  { id: 3, userId: 3, vipLevelId: 1, vipName: '普通会员', level: 0, discount: 1.0, startTime: '2024-01-01 00:00:00', endTime: '2099-12-31 23:59:59', isActive: 1, totalSpent: 320, totalOrders: 1, lastOrderTime: '2024-01-17 09:15:00' }
+]
+
+// 会员权益
+export const mockVipBenefits = [
+  { id: 1, name: '专属折扣', description: '会员专属折扣，最高8折', icon: '🏷️', minLevel: 1 },
+  { id: 2, name: '积分加倍', description: '消费积分加倍获取', icon: '⭐', minLevel: 2 },
+  { id: 3, name: '专属优惠券', description: '每月领取专属优惠券', icon: '🎫', minLevel: 1 },
+  { id: 4, name: '生日福利', description: '生日当月享5折优惠', icon: '🎂', minLevel: 2 },
+  { id: 5, name: '优先配送', description: '订单优先配送，更快送达', icon: '🚀', minLevel: 3 },
+  { id: 6, name: '专属客服', description: '专属客服，优先处理', icon: '💬', minLevel: 4 },
+  { id: 7, name: '免费配送', description: '每月2次免费配送', icon: '🚚', minLevel: 3 },
+  { id: 8, name: '新品尝鲜', description: '新品优先体验', icon: '🍔', minLevel: 2 }
+]
+
+// 收藏功能模拟数据
+export const mockFavorites = [
+  { id: 1, userId: 1, foodId: 1, createTime: '2024-01-15 10:30:00' },
+  { id: 2, userId: 1, foodId: 4, createTime: '2024-01-15 11:00:00' },
+  { id: 3, userId: 1, foodId: 7, createTime: '2024-01-16 09:15:00' },
+  { id: 4, userId: 1, foodId: 10, createTime: '2024-01-16 14:20:00' },
+  { id: 5, userId: 2, foodId: 2, createTime: '2024-01-15 13:15:00' },
+  { id: 6, userId: 2, foodId: 5, createTime: '2024-01-15 16:30:00' }
+]
+
+// 评价系统模拟数据
+// 订单评价
+export const mockReviews = [
+  { 
+    id: 1, 
+    orderId: 'ORD20240115003', 
+    userId: 3, 
+    deliveryManId: 3, 
+    rating: 4, 
+    foodRating: 4.5, 
+    deliveryRating: 3.5, 
+    content: '味道还不错，就是配送稍微慢了一点，希望下次能快一点。', 
+    images: [], 
+    isAnonymous: 0, 
+    createTime: '2024-01-16 09:30:00',
+    replyContent: '感谢您的评价，我们会加强配送管理，提升配送速度。',
+    replyTime: '2024-01-16 10:00:00'
+  },
+  { 
+    id: 2, 
+    orderId: 'ORD20240116001', 
+    userId: 1, 
+    deliveryManId: 1, 
+    rating: 5, 
+    foodRating: 5, 
+    deliveryRating: 5, 
+    content: '非常好！汉堡很新鲜，配送也很快，骑手态度很好，下次还会再来！', 
+    images: [
+      'https://via.placeholder.com/200x150?text=评价图片1',
+      'https://via.placeholder.com/200x150?text=评价图片2'
+    ], 
+    isAnonymous: 0, 
+    createTime: '2024-01-16 12:30:00',
+    replyContent: null,
+    replyTime: null
+  },
+  { 
+    id: 3, 
+    orderId: 'ORD20240115002', 
+    userId: 2, 
+    deliveryManId: 1, 
+    rating: 4, 
+    foodRating: 4, 
+    deliveryRating: 4, 
+    content: '整体不错，套餐分量很足，配送也准时。', 
+    images: [], 
+    isAnonymous: 1, 
+    createTime: '2024-01-15 16:00:00',
+    replyContent: '感谢您的支持，期待您的再次光临！',
+    replyTime: '2024-01-15 16:30:00'
+  }
+]
+
+// 评价回复
+export const mockReviewReplies = [
+  { id: 1, reviewId: 1, userId: null, isAdmin: 1, content: '感谢您的评价，我们会加强配送管理，提升配送速度。', createTime: '2024-01-16 10:00:00' },
+  { id: 2, reviewId: 3, userId: null, isAdmin: 1, content: '感谢您的支持，期待您的再次光临！', createTime: '2024-01-15 16:30:00' }
+]
+
+// 评分统计 - 骑手评分
+export const mockDeliveryManRatings = [
+  { 
+    id: 1, 
+    deliveryManId: 1, 
+    totalReviews: 2, 
+    totalRating: 9, 
+    avgRating: 4.5, 
+    fiveStarCount: 1, 
+    fourStarCount: 1, 
+    threeStarCount: 0, 
+    twoStarCount: 0, 
+    oneStarCount: 0,
+    lastReviewTime: '2024-01-16 12:30:00'
+  },
+  { 
+    id: 2, 
+    deliveryManId: 3, 
+    totalReviews: 1, 
+    totalRating: 3.5, 
+    avgRating: 3.5, 
+    fiveStarCount: 0, 
+    fourStarCount: 0, 
+    threeStarCount: 1, 
+    twoStarCount: 0, 
+    oneStarCount: 0,
+    lastReviewTime: '2024-01-16 09:30:00'
+  }
+]

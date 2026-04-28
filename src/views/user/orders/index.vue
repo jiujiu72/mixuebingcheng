@@ -52,6 +52,25 @@
                 <el-button type="primary" plain size="small" @click.stop="goToTracking(order)">
                   查看配送
                 </el-button>
+                <el-button 
+                  v-if="order.status === 4 && !isOrderReviewed(order.id)" 
+                  type="warning" 
+                  size="small" 
+                  @click.stop="goToReview(order)"
+                >
+                  <el-icon><ChatDotRound /></el-icon>
+                  去评价
+                </el-button>
+                <el-button 
+                  v-if="order.status === 4 && isOrderReviewed(order.id)" 
+                  type="info" 
+                  plain 
+                  size="small" 
+                  @click.stop="viewReview(order)"
+                >
+                  <el-icon><ChatDotRound /></el-icon>
+                  查看评价
+                </el-button>
               </div>
             </div>
 
@@ -90,8 +109,8 @@
 import { ref, computed, h, defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Document } from '@element-plus/icons-vue'
-import { mockOrders, orderStatusMap } from '../../../data/mockData'
+import { ArrowLeft, Document, ChatDotRound, Ticket } from '@element-plus/icons-vue'
+import { mockOrders, orderStatusMap, mockReviews, mockUserCoupons, mockCoupons } from '../../../data/mockData'
 
 const router = useRouter()
 const activeTab = ref('all')
@@ -192,7 +211,18 @@ const ordersList = defineComponent({
             plain: true,
             size: 'small',
             onClick: (e) => { e.stopPropagation(); goToTracking(order) }
-          }, '查看配送')
+          }, '查看配送'),
+          order.status === 4 && !mockReviews.some(r => r.orderId === order.id) ? h('el-button', {
+            type: 'warning',
+            size: 'small',
+            onClick: (e) => { e.stopPropagation(); router.push('/user/reviews') }
+          }, '去评价') : null,
+          order.status === 4 && mockReviews.some(r => r.orderId === order.id) ? h('el-button', {
+            type: 'info',
+            plain: true,
+            size: 'small',
+            onClick: (e) => { e.stopPropagation(); router.push('/user/reviews') }
+          }, '查看评价') : null
         ]) : null
       ])),
       orders.value.length === 0 ? h('div', { class: 'empty-orders' }, [
@@ -232,6 +262,18 @@ const handleConfirmReceive = () => {
     }
   }
   confirmDialogVisible.value = false
+}
+
+const isOrderReviewed = (orderId) => {
+  return mockReviews.some(r => r.orderId === orderId)
+}
+
+const goToReview = (order) => {
+  router.push('/user/reviews')
+}
+
+const viewReview = (order) => {
+  router.push('/user/reviews')
 }
 </script>
 

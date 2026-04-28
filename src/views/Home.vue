@@ -56,6 +56,38 @@
                   消息通知
                   <el-badge v-if="unreadCount > 0" :value="unreadCount" :offset="[10, 0]" class="dropdown-badge" />
                 </el-dropdown-item>
+                <el-dropdown-item command="coupons">
+                  <el-icon><Ticket /></el-icon>
+                  我的优惠券
+                  <el-tag v-if="unusedCouponsCount > 0" type="danger" size="small" class="dropdown-tag">
+                    {{ unusedCouponsCount }}
+                  </el-tag>
+                </el-dropdown-item>
+                <el-dropdown-item command="points">
+                  <el-icon><Wallet /></el-icon>
+                  我的积分
+                  <el-tag v-if="userPointsInfo?.availablePoints > 0" type="primary" size="small" class="dropdown-tag">
+                    {{ userPointsInfo?.availablePoints }}
+                  </el-tag>
+                </el-dropdown-item>
+                <el-dropdown-item command="vip">
+                  <el-icon><Medal /></el-icon>
+                  会员中心
+                  <el-tag v-if="userVipInfo?.level > 0" type="warning" size="small" class="dropdown-tag">
+                    {{ userVipInfo?.vipName }}
+                  </el-tag>
+                </el-dropdown-item>
+                <el-dropdown-item command="favorites">
+                  <el-icon><StarFilled /></el-icon>
+                  我的收藏
+                  <el-tag v-if="favoritesCount > 0" type="success" size="small" class="dropdown-tag">
+                    {{ favoritesCount }}
+                  </el-tag>
+                </el-dropdown-item>
+                <el-dropdown-item command="reviews">
+                  <el-icon><ChatDotRound /></el-icon>
+                  评价中心
+                </el-dropdown-item>
                 <el-dropdown-item divided command="logout">
                   <el-icon><SwitchButton /></el-icon>
                   退出登录
@@ -96,6 +128,13 @@
                 </div>
                 <div v-if="item.new" class="new-badge">
                   <span>新品</span>
+                </div>
+                <div 
+                  class="favorite-button"
+                  @click.stop="toggleFavorite(item.id)"
+                >
+                  <el-icon v-if="isFavorite(item.id)" color="#ef4444"><StarFilled /></el-icon>
+                  <el-icon v-else color="#cbd5e1"><Star /></el-icon>
                 </div>
               </div>
               
@@ -374,9 +413,19 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Search, SwitchButton, ShoppingCart, Plus, Minus,
-  Location, ArrowDown, User, Document, Bell, Check
+  Location, ArrowDown, User, Document, Bell, Check,
+  Star, StarFilled, Ticket, Wallet, Medal, ChatDotRound
 } from '@element-plus/icons-vue'
-import { mockUserAddresses, mockOrders, mockNotifications, mockOrderTracking } from '../data/mockData'
+import { 
+  mockUserAddresses, 
+  mockOrders, 
+  mockNotifications, 
+  mockOrderTracking,
+  mockFavorites,
+  mockUserVips,
+  mockUserPoints,
+  mockUserCoupons
+} from '../data/mockData'
 
 const router = useRouter()
 const searchKeyword = ref('')
@@ -397,6 +446,44 @@ const userAddresses = computed(() => {
 const unreadCount = computed(() => {
   return mockNotifications.filter(n => n.userId === 1 && !n.isRead).length
 })
+
+const userVipInfo = computed(() => {
+  return mockUserVips.find(v => v.userId === 1)
+})
+
+const userPointsInfo = computed(() => {
+  return mockUserPoints.find(p => p.userId === 1)
+})
+
+const favoritesCount = computed(() => {
+  return mockFavorites.filter(f => f.userId === 1).length
+})
+
+const unusedCouponsCount = computed(() => {
+  return mockUserCoupons.filter(c => c.userId === 1 && c.status === 'unused').length
+})
+
+const isFavorite = (foodId) => {
+  return mockFavorites.some(f => f.userId === 1 && f.foodId === foodId)
+}
+
+const toggleFavorite = (foodId) => {
+  const existingIndex = mockFavorites.findIndex(f => f.userId === 1 && f.foodId === foodId)
+  
+  if (existingIndex > -1) {
+    mockFavorites.splice(existingIndex, 1)
+    ElMessage.success('已取消收藏')
+  } else {
+    const newFavorite = {
+      id: Math.max(...mockFavorites.map(f => f.id), 0) + 1,
+      userId: 1,
+      foodId: foodId,
+      createTime: new Date().toLocaleString()
+    }
+    mockFavorites.push(newFavorite)
+    ElMessage.success('已添加到收藏')
+  }
+}
 
 const categories = [
   { id: 'all', name: '全部', icon: '🍔' },
@@ -714,6 +801,21 @@ const handleDropdownCommand = (command) => {
     case 'notifications':
       router.push('/user/notifications')
       break
+    case 'coupons':
+      router.push('/user/coupons')
+      break
+    case 'points':
+      router.push('/user/points')
+      break
+    case 'vip':
+      router.push('/user/vip')
+      break
+    case 'favorites':
+      router.push('/user/favorites')
+      break
+    case 'reviews':
+      router.push('/user/reviews')
+      break
     case 'logout':
       handleLogout()
       break
@@ -940,6 +1042,28 @@ const handleLogout = () => {
   color: white;
   left: auto;
   right: 12px;
+}
+
+.favorite-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.favorite-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .card-content {
@@ -1473,6 +1597,10 @@ const handleLogout = () => {
 }
 
 .dropdown-badge {
+  margin-left: 8px;
+}
+
+.dropdown-tag {
   margin-left: 8px;
 }
 

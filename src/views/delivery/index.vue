@@ -54,6 +54,11 @@
             <el-icon><Document /></el-icon>
             <span>我的订单</span>
           </el-menu-item>
+          <el-menu-item index="/delivery/reviews">
+            <el-icon><ChatDotRound /></el-icon>
+            <span>我的评价</span>
+            <el-badge v-if="unreadReviewsCount > 0" :value="unreadReviewsCount" class="menu-badge" />
+          </el-menu-item>
         </el-menu>
       </aside>
 
@@ -69,9 +74,9 @@ import { ref, computed, watch, onMounted, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { 
-  Van, Document, User, SwitchButton, Bell
+  Van, Document, User, SwitchButton, Bell, ChatDotRound
 } from '@element-plus/icons-vue'
-import { mockDeliveryMen, mockOrders } from '../../data/mockData'
+import { mockDeliveryMen, mockOrders, mockReviews } from '../../data/mockData'
 
 const router = useRouter()
 const route = useRoute()
@@ -93,6 +98,13 @@ const activeMenu = computed(() => {
 const pendingCount = computed(() => {
   return mockOrders.filter(o => 
     (o.status === 1 || o.status === 2) && !o.deliveryManId
+  ).length
+})
+
+const unreadReviewsCount = computed(() => {
+  if (!deliveryMan.value?.id) return 0
+  return mockReviews.filter(r => 
+    r.deliveryManId === deliveryMan.value.id && !r.reply
   ).length
 })
 
