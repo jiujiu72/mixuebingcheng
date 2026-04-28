@@ -14,7 +14,7 @@
       <div class="member-day-banner" :class="{ 'is-active': isTodayMemberDay }">
         <div class="banner-content">
           <div class="banner-icon">
-            <el-icon><Crown /></el-icon>
+            <el-icon><CrownFilled /></el-icon>
           </div>
           <div class="banner-text">
             <div class="banner-title">
@@ -198,7 +198,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft,
-  Crown,
+  CrownFilled,
   Discount,
   Star,
   Wallet,
