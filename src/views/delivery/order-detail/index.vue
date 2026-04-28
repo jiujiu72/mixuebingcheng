@@ -55,8 +55,8 @@
               
               <path
                 d="M 50 250 Q 100 200 150 220 T 250 150 T 350 80"
-                :fill="'none'"
-                :stroke="'url(#routeGradient-' + currentPreference)"
+                fill="none"
+                :stroke="'url(#routeGradient-' + currentPreference + ')'"
                 stroke-width="6"
                 stroke-linecap="round"
                 class="route-path"
