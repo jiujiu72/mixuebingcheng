@@ -637,3 +637,191 @@ export const mockDeliveryManRatings = [
     lastReviewTime: '2024-01-16 09:30:00'
   }
 ]
+
+// 秒杀活动状态枚举
+export const SeckillStatus = {
+  PENDING: 'pending',
+  ACTIVE: 'active',
+  ENDED: 'ended'
+}
+
+// 秒杀活动场次
+export const mockSeckillSessions = [
+  {
+    id: 1,
+    name: '早场秒杀',
+    startTime: new Date(Date.now() - 3600000).toISOString(),
+    endTime: new Date(Date.now() + 7200000).toISOString(),
+    status: 'active',
+    sort: 1
+  },
+  {
+    id: 2,
+    name: '午场秒杀',
+    startTime: new Date(Date.now() + 14400000).toISOString(),
+    endTime: new Date(Date.now() + 28800000).toISOString(),
+    status: 'pending',
+    sort: 2
+  },
+  {
+    id: 3,
+    name: '晚场秒杀',
+    startTime: new Date(Date.now() - 86400000).toISOString(),
+    endTime: new Date(Date.now() - 72000000).toISOString(),
+    status: 'ended',
+    sort: 3
+  }
+]
+
+// 秒杀商品
+export const mockSeckillItems = [
+  {
+    id: 1,
+    sessionId: 1,
+    foodId: 1,
+    foodName: '经典牛肉汉堡',
+    originalPrice: 28,
+    seckillPrice: 18.8,
+    stock: 50,
+    sold: 32,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=delicious%20beef%20burger%20with%20lettuce%20and%20tomato%20on%20white%20background%20product%20photography&image_size=square',
+    description: '100%纯牛肉饼，新鲜生菜，秘制酱料',
+    limitPerUser: 2,
+    status: 1
+  },
+  {
+    id: 2,
+    sessionId: 1,
+    foodId: 4,
+    foodName: '珍珠奶茶',
+    originalPrice: 15,
+    seckillPrice: 9.9,
+    stock: 100,
+    sold: 78,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=bubble%20tea%20with%20tapioca%20pearls%20in%20clear%20cup%20product%20photography%20white%20background&image_size=square',
+    description: 'Q弹珍珠，香浓奶茶，经典口味',
+    limitPerUser: 3,
+    status: 1
+  },
+  {
+    id: 3,
+    sessionId: 1,
+    foodId: 7,
+    foodName: '薯条',
+    originalPrice: 10,
+    seckillPrice: 5.9,
+    stock: 200,
+    sold: 156,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=crispy%20golden%20french%20fries%20in%20paper%20bag%20product%20photography%20white%20background&image_size=square',
+    description: '金黄酥脆，外酥里嫩，配番茄酱',
+    limitPerUser: 5,
+    status: 1
+  },
+  {
+    id: 4,
+    sessionId: 2,
+    foodId: 2,
+    foodName: '双层芝士汉堡',
+    originalPrice: 35,
+    seckillPrice: 23.8,
+    stock: 30,
+    sold: 0,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=double%20cheese%20burger%20with%20melted%20cheese%20product%20photography%20white%20background&image_size=square',
+    description: '双层牛肉饼，融化芝士，口感丰富',
+    limitPerUser: 2,
+    status: 1
+  },
+  {
+    id: 5,
+    sessionId: 2,
+    foodId: 10,
+    foodName: '提拉米苏',
+    originalPrice: 22,
+    seckillPrice: 14.9,
+    stock: 20,
+    sold: 0,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=tiramisu%20dessert%20slice%20with%20cocoa%20powder%20product%20photography%20white%20background&image_size=square',
+    description: '经典意式甜点，浓郁咖啡香',
+    limitPerUser: 2,
+    status: 1
+  },
+  {
+    id: 6,
+    sessionId: 3,
+    foodId: 12,
+    foodName: '经典套餐A',
+    originalPrice: 45,
+    seckillPrice: 29.9,
+    stock: 0,
+    sold: 40,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=burger%20fries%20and%20cola%20meal%20set%20product%20photography%20white%20background&image_size=square',
+    description: '经典汉堡 + 薯条 + 可乐',
+    limitPerUser: 1,
+    status: 0
+  }
+]
+
+// 会员日规则配置
+export const memberDayRules = {
+  weeklyDay: 3,
+  monthlyDays: [8, 18, 28],
+  discount: 0.85,
+  pointsMultiplier: 2,
+  description: '每周三、每月8/18/28日为会员日，有效会员可享受全场8.5折、专属低价商品、双倍积分权益'
+}
+
+// 会员日专属商品
+export const mockMemberDaySpecials = [
+  {
+    id: 1,
+    foodId: 3,
+    foodName: '香辣鸡腿堡',
+    originalPrice: 32,
+    memberPrice: 25.8,
+    stock: 100,
+    sold: 45,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=spicy%20chicken%20burger%20crispy%20chicken%20fillet%20product%20photography%20white%20background&image_size=square',
+    description: '酥脆鸡腿肉，香辣酱，爽辣过瘾',
+    minVipLevel: 1,
+    status: 1
+  },
+  {
+    id: 2,
+    foodId: 5,
+    foodName: '芒果冰沙',
+    originalPrice: 18,
+    memberPrice: 12.8,
+    stock: 150,
+    sold: 68,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=mango%20smoothie%20with%20fresh%20mango%20slices%20product%20photography%20white%20background&image_size=square',
+    description: '新鲜芒果，冰爽细腻，夏日首选',
+    minVipLevel: 1,
+    status: 1
+  },
+  {
+    id: 3,
+    foodId: 8,
+    foodName: '鸡米花',
+    originalPrice: 16,
+    memberPrice: 10.8,
+    stock: 200,
+    sold: 120,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=crispy%20popcorn%20chicken%20in%20white%20bowl%20product%20photography%20white%20background&image_size=square',
+    description: '香脆鸡块，外酥里嫩，配蘸酱',
+    minVipLevel: 1,
+    status: 1
+  },
+  {
+    id: 4,
+    foodId: 11,
+    foodName: '巧克力熔岩蛋糕',
+    originalPrice: 25,
+    memberPrice: 18.8,
+    stock: 50,
+    sold: 25,
+    image: 'https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=chocolate%20lava%20cake%20with%20melting%20center%20product%20photography%20white%20background&image_size=square',
+    description: '外酥内软，巧克力流心',
+    minVipLevel: 2,
+    status: 1
+  }
+]

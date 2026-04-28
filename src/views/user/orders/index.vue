@@ -134,7 +134,7 @@
     <el-dialog v-model="confirmDialogVisible" title="确认收货" width="420px" :close-on-click-modal="false">
       <div class="confirm-dialog-content">
         <div class="confirm-icon">
-          <el-icon :size="48" :color="var(--primary-600)"><CircleCheckFilled /></el-icon>
+          <el-icon :size="48" color="var(--primary-600)"><CircleCheckFilled /></el-icon>
         </div>
         <p class="confirm-text">确认已收到订单中的所有商品吗？</p>
         <div class="confirm-order-info">

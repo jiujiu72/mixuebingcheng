@@ -25,6 +25,8 @@ import UserPoints from '../views/user/points/index.vue'
 import UserVip from '../views/user/vip/index.vue'
 import UserFavorites from '../views/user/favorites/index.vue'
 import UserReviews from '../views/user/reviews/index.vue'
+import Seckill from '../views/seckill/index.vue'
+import MemberDay from '../views/member-day/index.vue'
 
 const routes = [
   {
@@ -117,6 +119,22 @@ const routes = [
     path: '/user/reviews',
     name: 'UserReviews',
     component: UserReviews,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/seckill',
+    name: 'Seckill',
+    component: Seckill,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/member-day',
+    name: 'MemberDay',
+    component: MemberDay,
     meta: {
       requiresAuth: true
     }
