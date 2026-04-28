@@ -206,22 +206,29 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Check, Clock, Warning } from '@element-plus/icons-vue'
 import { 
   mockVipLevels, 
-  mockUserVips, 
-  mockVipBenefits,
-  mockUsers
+  mockVipBenefits
 } from '../../../data/mockData'
+import {
+  getCurrentUserVipInfo,
+  getVipLevelByLevel,
+  canPurchaseVipOption,
+  upgradeVip,
+  onVipUpdated,
+  checkVipExpiration
+} from '../../../utils/userState'
 
 const router = useRouter()
 const activeTab = ref('benefits')
 const loading = ref(false)
+const vipRefreshTrigger = ref(0)
 
-const VIP_STORAGE_KEY = 'userVipInfo'
+let removeVipListener = null
 
 const currentUser = computed(() => {
   const user = localStorage.getItem('user')
@@ -236,70 +243,18 @@ const vipLevels = computed(() => {
   return [...mockVipLevels].sort((a, b) => a.level - b.level)
 })
 
-const checkVipExpiration = (userVip) => {
-  if (!userVip) return false
-  if (!userVip.endTime) return true
-  
-  const now = new Date()
-  const endTime = new Date(userVip.endTime)
-  
-  if (now > endTime && userVip.level > 0) {
-    userVip.vipLevelId = 1
-    userVip.vipName = '普通会员'
-    userVip.level = 0
-    userVip.discount = 1.0
-    userVip.isActive = 0
-    saveVipToLocalStorage(userVip)
-    ElMessage.warning('您的会员已过期，已自动降级为普通会员')
-    return false
-  }
-  return userVip.isActive === 1
-}
-
 const currentVip = computed(() => {
-  let userVip = mockUserVips.find(v => v.userId === currentUserId.value)
-  
-  if (!userVip) {
-    const defaultVip = {
-      id: mockUserVips.length + 1,
-      userId: currentUserId.value,
-      vipLevelId: 1,
-      vipName: '普通会员',
-      level: 0,
-      discount: 1.0,
-      startTime: new Date().toISOString(),
-      endTime: null,
-      isActive: 1,
-      totalSpent: 0,
-      totalOrders: 0,
-      lastOrderTime: null
-    }
-    mockUserVips.push(defaultVip)
-    userVip = defaultVip
-  }
-  
-  checkVipExpiration(userVip)
-  
-  const vipInfo = mockVipLevels.find(l => l.id === userVip.vipLevelId)
-  return {
-    ...userVip,
-    vipInfo
-  }
+  vipRefreshTrigger.value
+  return getCurrentUserVipInfo(currentUserId.value)
 })
 
 const isVipActive = computed(() => {
-  return currentVip.value?.isActive === 1 && currentVip.value?.level > 0
+  return currentVip.value?.isVipActive || false
 })
 
 const vipDaysRemaining = computed(() => {
   if (!currentVip.value?.endTime) return null
-  
-  const now = new Date()
-  const endTime = new Date(currentVip.value.endTime)
-  const diffMs = endTime - now
-  
-  if (diffMs <= 0) return 0
-  return Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+  return currentVip.value.daysRemaining || 0
 })
 
 const nextVipLevel = computed(() => {
@@ -382,27 +337,7 @@ const currentVipLevelNum = computed(() => {
 })
 
 const getUpgradeOptionStatus = (option) => {
-  const targetLevel = option.targetLevel
-  const currentLevel = currentVipLevelNum.value
-  
-  if (targetLevel < currentLevel) {
-    return {
-      canPurchase: false,
-      reason: `您当前已是${currentVip.value?.vipInfo?.name || '高级会员'}，等级更高，无需购买此会员`
-    }
-  }
-  
-  if (targetLevel === currentLevel) {
-    return {
-      canPurchase: false,
-      reason: `您已是${currentVip.value?.vipInfo?.name}，请勿重复购买同级会员`
-    }
-  }
-  
-  return {
-    canPurchase: true,
-    reason: ''
-  }
+  return canPurchaseVipOption(option, currentUserId.value)
 }
 
 const availableUpgradeOptions = computed(() => {
@@ -416,39 +351,8 @@ const availableUpgradeOptions = computed(() => {
   })
 })
 
-const saveVipToLocalStorage = (vipInfo) => {
-  const vipData = {
-    ...vipInfo,
-    lastSyncTime: new Date().toISOString()
-  }
-  localStorage.setItem(VIP_STORAGE_KEY, JSON.stringify(vipData))
-  
-  const user = currentUser.value
-  if (user) {
-    user.vipLevel = vipInfo.level
-    user.vipName = vipInfo.vipName
-    user.isVip = vipInfo.level > 0
-    localStorage.setItem('user', JSON.stringify(user))
-  }
-}
-
-const loadVipFromLocalStorage = () => {
-  const stored = localStorage.getItem(VIP_STORAGE_KEY)
-  if (stored) {
-    try {
-      const vipData = JSON.parse(stored)
-      const userVip = mockUserVips.find(v => v.userId === currentUserId.value)
-      if (userVip) {
-        Object.assign(userVip, vipData)
-      }
-    } catch (e) {
-      console.error('Failed to load VIP info from localStorage', e)
-    }
-  }
-}
-
 const getTargetVipLevel = (targetLevelNum) => {
-  return vipLevels.value.find(l => l.level === targetLevelNum) || vipLevels.value[0]
+  return getVipLevelByLevel(targetLevelNum) || vipLevels.value[0]
 }
 
 const handleUpgrade = (option) => {
@@ -487,41 +391,21 @@ const handleUpgrade = (option) => {
     loading.value = true
     
     setTimeout(() => {
-      const startTime = new Date()
-      const endTime = new Date(startTime.getTime() + option.durationDays * 24 * 60 * 60 * 1000)
-      
-      let userVip = mockUserVips.find(v => v.userId === currentUserId.value)
-      
-      if (!userVip) {
-        userVip = {
-          id: mockUserVips.length + 1,
-          userId: currentUserId.value,
-          totalSpent: 0,
-          totalOrders: 0,
-          lastOrderTime: null
-        }
-        mockUserVips.push(userVip)
-      }
-      
-      const finalLevel = targetLevel
-      
-      userVip.vipLevelId = finalLevel.id
-      userVip.vipName = finalLevel.name
-      userVip.level = finalLevel.level
-      userVip.discount = finalLevel.discount
-      userVip.startTime = startTime.toISOString()
-      userVip.endTime = endTime.toISOString()
-      userVip.isActive = 1
-      
-      saveVipToLocalStorage(userVip)
+      const result = upgradeVip(option, currentUserId.value)
       
       loading.value = false
       
-      ElMessage({
-        message: `开通成功！您已升级为${finalLevel.name}，会员权益立即生效`,
-        type: 'success',
-        duration: 4000
-      })
+      if (result.success) {
+        vipRefreshTrigger.value++
+        
+        ElMessage({
+          message: `开通成功！您已升级为${result.targetLevel.name}，会员权益立即生效`,
+          type: 'success',
+          duration: 4000
+        })
+      } else {
+        ElMessage.error(result.message || '开通失败，请重试')
+      }
       
     }, 800)
   }).catch(() => {})
@@ -551,8 +435,26 @@ const formatDate = (dateStr) => {
   })
 }
 
+const refreshVipData = () => {
+  vipRefreshTrigger.value++
+}
+
 onMounted(() => {
-  loadVipFromLocalStorage()
+  const expired = checkVipExpiration(currentUserId.value)
+  if (expired) {
+    ElMessage.warning('您的会员已过期，已自动降级为普通会员')
+    vipRefreshTrigger.value++
+  }
+  
+  removeVipListener = onVipUpdated(() => {
+    vipRefreshTrigger.value++
+  })
+})
+
+onUnmounted(() => {
+  if (removeVipListener) {
+    removeVipListener()
+  }
 })
 </script>
 

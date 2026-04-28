@@ -534,7 +534,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
@@ -571,6 +571,11 @@ import {
   checkNewUserRestriction,
   checkStackCompatibility
 } from '../utils/couponUtils'
+import {
+  getCurrentUserVipInfo,
+  onVipUpdated,
+  checkVipExpiration
+} from '../utils/userState'
 
 const router = useRouter()
 const searchKeyword = ref('')
@@ -588,6 +593,9 @@ const selectedCouponInDialog = ref(null)
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
 const username = computed(() => user.value.username || '游客')
 
+const vipRefreshTrigger = ref(0)
+let removeVipListener = null
+
 const userAddresses = computed(() => {
   return mockUserAddresses.filter(a => a.userId === 1)
 })
@@ -597,7 +605,9 @@ const unreadCount = computed(() => {
 })
 
 const userVipInfo = computed(() => {
-  return mockUserVips.find(v => v.userId === 1)
+  vipRefreshTrigger.value
+  const vipInfo = getCurrentUserVipInfo(1)
+  return vipInfo || mockUserVips.find(v => v.userId === 1)
 })
 
 const userPointsInfo = computed(() => {
@@ -1144,6 +1154,21 @@ onMounted(() => {
   const defaultAddress = userAddresses.value.find(a => a.isDefault === 1)
   if (defaultAddress) {
     selectedAddress.value = defaultAddress
+  }
+  
+  const expired = checkVipExpiration(1)
+  if (expired) {
+    vipRefreshTrigger.value++
+  }
+  
+  removeVipListener = onVipUpdated(() => {
+    vipRefreshTrigger.value++
+  })
+})
+
+onUnmounted(() => {
+  if (removeVipListener) {
+    removeVipListener()
   }
 })
 
