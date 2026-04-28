@@ -516,7 +516,7 @@ import {
   generateTurnByTurn,
   updateDeliveryManLocation,
 } from '../../utils/mapService'
-import { mockOrders, mockDeliveryMen } from '../../data/mockData'
+import { mockOrders, mockDeliveryMen } from '../../../data/mockData'
 
 const router = useRouter()
 const route = useRoute()
