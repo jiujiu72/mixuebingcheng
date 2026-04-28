@@ -403,6 +403,142 @@ export const mockVipBenefits = [
   { id: 8, name: '新品尝鲜', description: '新品优先体验', icon: '🍔', minLevel: 2 }
 ]
 
+// VIP套餐选项
+export const mockVipPackages = [
+  {
+    id: 1,
+    name: '月度会员',
+    duration: '1个月',
+    durationDays: 30,
+    price: 29,
+    originalPrice: 39,
+    targetLevel: 1,
+    recommended: false,
+    type: 'upgrade',
+    benefits: [
+      '专属9.5折优惠',
+      '积分加倍获取',
+      '每月1张优惠券',
+      '生日福利'
+    ]
+  },
+  {
+    id: 2,
+    name: '季度会员',
+    duration: '3个月',
+    durationDays: 90,
+    price: 79,
+    originalPrice: 117,
+    targetLevel: 2,
+    recommended: true,
+    type: 'upgrade',
+    benefits: [
+      '专属9折优惠',
+      '积分加倍获取',
+      '每月2张优惠券',
+      '生日福利',
+      '优先配送',
+      '免费配送2次/月'
+    ]
+  },
+  {
+    id: 3,
+    name: '年度会员',
+    duration: '12个月',
+    durationDays: 365,
+    price: 299,
+    originalPrice: 468,
+    targetLevel: 3,
+    recommended: false,
+    type: 'upgrade',
+    benefits: [
+      '专属8.5折优惠',
+      '积分3倍获取',
+      '每月3张优惠券',
+      '生日福利',
+      '优先配送',
+      '免费配送4次/月',
+      '专属客服',
+      '新品尝鲜'
+    ]
+  },
+  {
+    id: 4,
+    name: '月度续费',
+    duration: '1个月',
+    durationDays: 30,
+    price: 29,
+    originalPrice: 39,
+    targetLevel: 1,
+    recommended: false,
+    type: 'renew',
+    benefits: [
+      '专属9.5折优惠',
+      '积分加倍获取',
+      '每月1张优惠券',
+      '生日福利'
+    ]
+  },
+  {
+    id: 5,
+    name: '季度续费',
+    duration: '3个月',
+    durationDays: 90,
+    price: 79,
+    originalPrice: 117,
+    targetLevel: 2,
+    recommended: true,
+    type: 'renew',
+    benefits: [
+      '专属9折优惠',
+      '积分加倍获取',
+      '每月2张优惠券',
+      '生日福利',
+      '优先配送',
+      '免费配送2次/月'
+    ]
+  },
+  {
+    id: 6,
+    name: '年度续费',
+    duration: '12个月',
+    durationDays: 365,
+    price: 299,
+    originalPrice: 468,
+    targetLevel: 3,
+    recommended: false,
+    type: 'renew',
+    benefits: [
+      '专属8.5折优惠',
+      '积分3倍获取',
+      '每月3张优惠券',
+      '生日福利',
+      '优先配送',
+      '免费配送4次/月',
+      '专属客服',
+      '新品尝鲜'
+    ]
+  }
+]
+
+// 获取VIP等级名称映射
+export const getVipLevelNames = () => {
+  const names = {}
+  mockVipLevels.forEach(level => {
+    names[level.level] = level.name
+  })
+  return names
+}
+
+// 获取VIP等级权重
+export const getVipLevelWeights = () => {
+  const weights = {}
+  mockVipLevels.forEach(level => {
+    weights[level.level] = level.level
+  })
+  return weights
+}
+
 // 收藏功能模拟数据
 export const mockFavorites = [
   { id: 1, userId: 1, foodId: 1, createTime: '2024-01-15 10:30:00' },

@@ -57,6 +57,10 @@
             <div class="stat-value">{{ currentVip?.totalOrders || 0 }}</div>
             <div class="stat-label">累计订单</div>
           </div>
+          <div class="stat-item">
+            <div class="stat-value rank-value">#{{ vipRanking?.rank || '-' }}</div>
+            <div class="stat-label">会员排名</div>
+          </div>
         </div>
       </div>
     </div>
@@ -80,6 +84,39 @@
             <span class="highlight">{{ Math.max(0, (nextVipLevel.minPoints || 0) - (currentVip?.totalSpent || 0)) }}</span> 元
           </span>
           <span v-else>您已达到最高等级</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="vip-ranking-section" v-if="vipLeaderboard.length > 0">
+      <div class="ranking-card">
+        <div class="ranking-header">
+          <span class="ranking-title">会员排行榜</span>
+          <span class="ranking-subtitle">您的排名：第 {{ vipRanking?.rank || '-' }} 名 / 共 {{ vipRanking?.totalUsers || 0 }} 人</span>
+        </div>
+        <div class="ranking-list">
+          <div
+            v-for="(item, index) in vipLeaderboard"
+            :key="item.userId"
+            class="ranking-item"
+            :class="{ 'current-user': item.userId === currentUserId"
+          >
+            <div class="ranking-number" :class="'rank-' + item.rank">
+              <span v-if="item.rank <= 3">{{ item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉' }}</span>
+              <span v-else>{{ item.rank }}</span>
+            </div>
+            <div class="ranking-avatar" :style="{ backgroundColor: item.levelColor + '20' }">
+              {{ item.levelIcon }}
+            </div>
+            <div class="ranking-info">
+              <div class="ranking-name">{{ item.levelName }}</div>
+              <div class="ranking-stats">消费 {{ item.totalSpent }} 元 · {{ item.totalOrders }} 单</div>
+            </div>
+            <div class="ranking-status">
+              <el-tag v-if="item.isActive" type="success" size="small">活跃</el-tag>
+              <el-tag v-else type="info" size="small">已过期</el-tag>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -156,10 +193,10 @@
       </el-tabs>
     </div>
 
-    <div class="upgrade-section">
+    <div class="upgrade-section" v-if="availableUpgradeOptions.length > 0">
       <div class="upgrade-card">
         <div class="upgrade-header">
-          <h3>升级会员</h3>
+          <h3>{{ currentVip?.level > 0 && isVipActive ? '续费/升级会员' : '升级会员' }}</h3>
           <p>享受更多专属权益</p>
         </div>
         <div class="upgrade-options">
@@ -192,7 +229,7 @@
               :disabled="!option.canPurchase"
               @click="handleUpgrade(option)"
             >
-              {{ option.canPurchase ? '立即开通' : '不可购买' }}
+              {{ option.canPurchase ? (option.type === 'renew' ? '立即续费' : '立即开通') : '不可购买' }}
             </el-button>
             <div v-if="!option.canPurchase" class="unavailable-reason">
               <el-icon><Warning /></el-icon>
@@ -202,6 +239,60 @@
         </div>
       </div>
     </div>
+
+    <div class="payment-overlay" v-if="showPaymentProcessing">
+      <div class="payment-modal">
+        <div class="payment-icon">
+          <el-icon class="loading-icon"><Loading /></el-icon>
+        </div>
+        <div class="payment-title">支付处理中</div>
+        <div class="payment-text">正在处理您的支付请求，请稍候...</div>
+      </div>
+    </div>
+
+    <el-dialog
+      v-model="showSuccessModal"
+      title="支付成功"
+      width="420px"
+      :show-close="false"
+      :close-on-click-modal="false"
+      class="success-dialog"
+    >
+      <div class="success-content">
+        <div class="success-icon">
+          <el-icon><CircleCheck /></el-icon>
+        </div>
+        <div class="success-title">
+          {{ successModalData?.action }}成功！
+        </div>
+        <div class="success-details">
+          <div class="detail-item">
+            <span class="detail-label">套餐名称：</span>
+            <span class="detail-value">{{ successModalData?.packageName }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">会员等级：</span>
+            <span class="detail-value">{{ successModalData?.targetLevel?.name }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">支付金额：</span>
+            <span class="detail-value price">¥{{ successModalData?.price }}</span>
+          </div>
+          <div class="detail-item" v-if="successModalData?.newEndTime">
+            <span class="detail-label">有效期至：</span>
+            <span class="detail-value">{{ formatDate(successModalData?.newEndTime) }}</span>
+          </div>
+        </div>
+        <div class="success-tip">
+          您已成功{{ successModalData?.action }}为{{ successModalData?.targetLevel?.name }}，会员权益立即生效！
+        </div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="closeSuccessModal" class="success-btn">
+          我知道了
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -209,7 +300,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowLeft, Check, Clock, Warning } from '@element-plus/icons-vue'
+import { ArrowLeft, Check, Clock, Warning, Loading, CircleCheck } from '@element-plus/icons-vue'
 import { 
   mockVipLevels, 
   mockVipBenefits
@@ -219,14 +310,21 @@ import {
   getVipLevelByLevel,
   canPurchaseVipOption,
   upgradeVip,
+  extendVipDuration,
   onVipUpdated,
-  checkVipExpiration
+  checkVipExpiration,
+  getVipRanking,
+  getVipLeaderboard,
+  getAvailableVipPackages
 } from '../../../utils/userState'
 
 const router = useRouter()
 const activeTab = ref('benefits')
 const loading = ref(false)
 const vipRefreshTrigger = ref(0)
+const showSuccessModal = ref(false)
+const successModalData = ref(null)
+const showPaymentProcessing = ref(false)
 
 let removeVipListener = null
 
@@ -275,62 +373,20 @@ const availableBenefits = computed(() => {
   return mockVipBenefits
 })
 
-const upgradeOptions = ref([
-  {
-    id: 1,
-    name: '月度会员',
-    duration: '1个月',
-    durationDays: 30,
-    price: 29,
-    originalPrice: 39,
-    targetLevel: 1,
-    recommended: false,
-    benefits: [
-      '专属9.5折优惠',
-      '积分加倍获取',
-      '每月1张优惠券',
-      '生日福利'
-    ]
-  },
-  {
-    id: 2,
-    name: '季度会员',
-    duration: '3个月',
-    durationDays: 90,
-    price: 79,
-    originalPrice: 117,
-    targetLevel: 2,
-    recommended: true,
-    benefits: [
-      '专属9折优惠',
-      '积分加倍获取',
-      '每月2张优惠券',
-      '生日福利',
-      '优先配送',
-      '免费配送2次/月'
-    ]
-  },
-  {
-    id: 3,
-    name: '年度会员',
-    duration: '12个月',
-    durationDays: 365,
-    price: 299,
-    originalPrice: 468,
-    targetLevel: 3,
-    recommended: false,
-    benefits: [
-      '专属8.5折优惠',
-      '积分3倍获取',
-      '每月3张优惠券',
-      '生日福利',
-      '优先配送',
-      '免费配送4次/月',
-      '专属客服',
-      '新品尝鲜'
-    ]
-  }
-])
+const vipRanking = computed(() => {
+  vipRefreshTrigger.value
+  return getVipRanking(currentUserId.value)
+})
+
+const vipLeaderboard = computed(() => {
+  vipRefreshTrigger.value
+  return getVipLeaderboard(10)
+})
+
+const upgradeOptions = computed(() => {
+  vipRefreshTrigger.value
+  return getAvailableVipPackages(currentUserId.value)
+})
 
 const currentVipLevelNum = computed(() => {
   return currentVip.value?.vipInfo?.level || 0
@@ -364,8 +420,10 @@ const handleUpgrade = (option) => {
 
   const targetLevel = getTargetVipLevel(option.targetLevel)
   const currentLevel = currentVipLevelNum.value
+  const isRenew = option.type === 'renew'
   
-  let message = `确定要开通"${option.name}"吗？\n\n`
+  let actionText = isRenew ? '续费' : '开通'
+  let message = `确定要${actionText}"${option.name}"吗？\n\n`
   message += `价格：¥${option.price}\n`
   if (option.originalPrice > option.price) {
     message += `原价：¥${option.originalPrice}（已省¥${option.originalPrice - option.price}）\n`
@@ -373,42 +431,59 @@ const handleUpgrade = (option) => {
   message += `有效期：${option.duration}\n`
   message += `会员等级：${targetLevel.name}\n`
   message += `专属折扣：${targetLevel.discount * 10}折\n\n`
-  if (currentLevel > 0) {
+  if (currentLevel > 0 && !isRenew) {
     message += `当前会员等级：${currentVip.value?.vipInfo?.name}\n`
     message += `升级后会员等级：${targetLevel.name}\n`
   }
-  message += `开通后将立即享受对应会员权益。`
+  message += `${actionText}后将立即享受对应会员权益。`
 
   ElMessageBox.confirm(
     message,
-    '确认开通会员',
+    `确认${actionText}会员`,
     {
       confirmButtonText: '确认支付',
       cancelButtonText: '取消',
       type: 'info'
     }
   ).then(() => {
+    showPaymentProcessing.value = true
     loading.value = true
     
     setTimeout(() => {
-      const result = upgradeVip(option, currentUserId.value)
+      let result
+      if (isRenew) {
+        result = extendVipDuration(option, currentUserId.value)
+      } else {
+        result = upgradeVip(option, currentUserId.value)
+      }
       
+      showPaymentProcessing.value = false
       loading.value = false
       
       if (result.success) {
         vipRefreshTrigger.value++
         
-        ElMessage({
-          message: `开通成功！您已升级为${result.targetLevel.name}，会员权益立即生效`,
-          type: 'success',
-          duration: 4000
-        })
+        successModalData.value = {
+          action: isRenew ? '续费' : '开通',
+          packageName: option.name,
+          targetLevel: result.targetLevel || targetLevel,
+          price: option.price,
+          duration: option.duration,
+          isRenew: isRenew,
+          newEndTime: result.vipInfo?.endTime
+        }
+        showSuccessModal.value = true
       } else {
-        ElMessage.error(result.message || '开通失败，请重试')
+        ElMessage.error(result.message || '操作失败，请重试')
       }
       
-    }, 800)
+    }, 1500)
   }).catch(() => {})
+}
+
+const closeSuccessModal = () => {
+  showSuccessModal.value = false
+  successModalData.value = null
 }
 
 const goBack = () => {
@@ -983,6 +1058,277 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
+.rank-value {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.vip-ranking-section {
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.ranking-card {
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.ranking-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ranking-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.ranking-subtitle {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.ranking-item:hover {
+  background: #f1f5f9;
+}
+
+.ranking-item.current-user {
+  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
+  border: 1px solid #667eea;
+}
+
+.ranking-number {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  background: #e2e8f0;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ranking-number.rank-1 {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.ranking-number.rank-2 {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  color: white;
+}
+
+.ranking-number.rank-3 {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: white;
+}
+
+.ranking-number span {
+  font-size: 18px;
+}
+
+.ranking-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.ranking-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ranking-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.ranking-stats {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.payment-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.payment-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.payment-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-icon {
+  font-size: 48px;
+  color: #667eea;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.payment-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.payment-text {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.success-dialog :deep(.el-dialog__header) {
+  text-align: center;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.success-dialog :deep(.el-dialog__title) {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.success-dialog :deep(.el-dialog__body) {
+  padding: 16px 24px 24px;
+}
+
+.success-dialog :deep(.el-dialog__footer) {
+  border-top: none;
+  padding-top: 0;
+  text-align: center;
+}
+
+.success-content {
+  text-align: center;
+}
+
+.success-icon {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-icon .el-icon {
+  font-size: 40px;
+  color: white;
+}
+
+.success-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 20px;
+}
+
+.success-details {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.detail-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.detail-value.price {
+  color: #ef4444;
+  font-size: 18px;
+}
+
+.success-tip {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.success-btn {
+  width: 160px;
+  border-radius: 24px;
+  font-weight: 600;
+}
+
 @media (max-width: 768px) {
   .vip-header {
     padding: 12px 16px;
@@ -1036,6 +1382,35 @@ onUnmounted(() => {
     width: 100%;
     display: flex;
     justify-content: flex-end;
+  }
+
+  .vip-ranking-section {
+    padding: 0 16px;
+  }
+
+  .ranking-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .ranking-item {
+    flex-wrap: wrap;
+  }
+
+  .ranking-status {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  .payment-modal {
+    margin: 0 16px;
+    padding: 24px;
+  }
+
+  .success-dialog :deep(.el-dialog) {
+    margin: 16px;
+    width: auto !important;
   }
 }
 </style>
