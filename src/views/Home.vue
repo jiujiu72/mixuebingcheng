@@ -102,6 +102,66 @@
     <main class="main-content">
       <div class="content-wrapper">
         <div class="menu-section">
+          <div class="promo-banner-section">
+            <div class="promo-banner-wrapper">
+              <div 
+                v-for="(banner, index) in promoBanners" 
+                :key="index"
+                class="promo-banner"
+                :class="{ active: currentBannerIndex === index }"
+                @click="handleBannerClick(banner)"
+              >
+                <div class="banner-content" :style="{ background: banner.background }">
+                  <div class="banner-text">
+                    <div class="banner-badge">{{ banner.badge }}</div>
+                    <h3 class="banner-title">{{ banner.title }}</h3>
+                    <p class="banner-desc">{{ banner.description }}</p>
+                    <div class="banner-action">
+                      <span class="action-text">{{ banner.actionText }}</span>
+                      <el-icon><ArrowRight /></el-icon>
+                    </div>
+                  </div>
+                  <div class="banner-countdown" v-if="banner.showCountdown">
+                    <div class="countdown-label">{{ banner.countdownLabel }}</div>
+                    <div class="countdown-value">
+                      <span class="countdown-unit">
+                        <span class="countdown-num">{{ bannerCountdown.hours }}</span>
+                        <span class="countdown-sep">:</span>
+                      </span>
+                      <span class="countdown-unit">
+                        <span class="countdown-num">{{ bannerCountdown.minutes }}</span>
+                        <span class="countdown-sep">:</span>
+                      </span>
+                      <span class="countdown-unit">
+                        <span class="countdown-num">{{ bannerCountdown.seconds }}</span>
+                      </span>
+                    </div>
+                  </div>
+                  <div class="banner-icon" v-if="banner.icon">
+                    <span class="icon-text">{{ banner.icon }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="banner-indicators">
+              <span
+                v-for="(banner, index) in promoBanners"
+                :key="index"
+                class="indicator-dot"
+                :class="{ active: currentBannerIndex === index }"
+                @click="currentBannerIndex = index"
+              ></span>
+            </div>
+            <div class="banner-nav">
+              <div class="nav-btn nav-prev" @click="prevBanner">
+                <el-icon><ArrowLeft /></el-icon>
+              </div>
+              <div class="nav-btn nav-next" @click="nextBanner">
+                <el-icon><ArrowRight /></el-icon>
+              </div>
+            </div>
+          </div>
+
           <div class="category-tabs">
             <div
               v-for="category in categories"
@@ -576,6 +636,17 @@ import {
   onVipUpdated,
   checkVipExpiration
 } from '../utils/userState'
+import {
+  getCurrentActiveSession,
+  getCountdown,
+  formatCountdown
+} from '../utils/seckillUtils'
+import {
+  isTodayMemberDay,
+  getNextMemberDay,
+  getMemberDayRulesInfo,
+  canAccessMemberDayBenefits
+} from '../utils/memberDayUtils'
 
 const router = useRouter()
 const searchKeyword = ref('')
@@ -595,6 +666,158 @@ const username = computed(() => user.value.username || '游客')
 
 const vipRefreshTrigger = ref(0)
 let removeVipListener = null
+
+const currentBannerIndex = ref(0)
+const bannerCountdown = ref({ hours: '00', minutes: '00', seconds: '00' })
+let bannerTimer = null
+let bannerAutoPlayTimer = null
+
+const promoBanners = computed(() => {
+  const banners = []
+  
+  const activeSeckillSession = getCurrentActiveSession()
+  if (activeSeckillSession) {
+    banners.push({
+      type: 'seckill',
+      badge: '限时秒杀',
+      title: '限时秒杀火爆进行中',
+      description: '精选商品，超低价格，先到先得！',
+      actionText: '立即抢购',
+      background: 'linear-gradient(135deg, #ef4444 0%, #f97316 50%, #ea580c 100%)',
+      showCountdown: true,
+      countdownLabel: '距结束',
+      icon: '🔥',
+      route: '/seckill'
+    })
+  }
+  
+  const todayIsMemberDay = isTodayMemberDay()
+  const nextMemberDayInfo = getNextMemberDay()
+  const memberDayRules = getMemberDayRulesInfo()
+  
+  banners.push({
+    type: 'memberDay',
+    badge: todayIsMemberDay ? '会员日' : '会员专属',
+    title: todayIsMemberDay ? '今天是会员日！' : '会员日专享优惠',
+    description: todayIsMemberDay 
+      ? `全场${memberDayRules.discountDisplay}，双倍积分，专属低价！`
+      : (nextMemberDayInfo 
+          ? `下次会员日：${nextMemberDayInfo.daysUntil}天后（${nextMemberDayInfo.date?.toLocaleDateString('zh-CN')}）`
+          : '每周三、每月8/18/28日为会员日'),
+    actionText: '查看详情',
+    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
+    showCountdown: false,
+    icon: '👑',
+    route: '/member-day'
+  })
+  
+  return banners
+})
+
+const formatCountdownNum = (num) => {
+  return String(Math.max(0, num)).padStart(2, '0')
+}
+
+const updateCountdown = () => {
+  const activeSession = getCurrentActiveSession()
+  if (activeSession) {
+    const countdown = getCountdown(activeSession.endTime)
+    bannerCountdown.value = {
+      hours: formatCountdownNum(countdown.hours),
+      minutes: formatCountdownNum(countdown.minutes),
+      seconds: formatCountdownNum(countdown.seconds)
+    }
+  }
+}
+
+const nextBanner = () => {
+  currentBannerIndex.value = (currentBannerIndex.value + 1) % promoBanners.value.length
+}
+
+const prevBanner = () => {
+  currentBannerIndex.value = (currentBannerIndex.value - 1 + promoBanners.value.length) % promoBanners.value.length
+}
+
+const handleBannerClick = (banner) => {
+  if (banner.route) {
+    router.push(banner.route)
+  }
+}
+
+const hasSeckillItems = computed(() => {
+  return cartItems.value.some(item => item.isSeckill)
+})
+
+const hasMemberDayItems = computed(() => {
+  return cartItems.value.some(item => item.isMemberDaySpecial)
+})
+
+const seckillItemsTotal = computed(() => {
+  return cartItems.value
+    .filter(item => item.isSeckill)
+    .reduce((sum, item) => sum + (item.seckillPrice || item.price) * item.quantity, 0)
+})
+
+const regularItemsTotal = computed(() => {
+  return cartItems.value
+    .filter(item => !item.isSeckill)
+    .reduce((sum, item) => {
+      const price = item.memberPrice || item.price
+      return sum + price * item.quantity
+    }, 0)
+})
+
+const isTodayMemberDayVal = computed(() => {
+  return isTodayMemberDay()
+})
+
+const memberDayAccess = computed(() => {
+  return canAccessMemberDayBenefits(1)
+})
+
+const canUseMemberDayDiscount = computed(() => {
+  return isTodayMemberDayVal.value && memberDayAccess.value.canAccess
+})
+
+const memberDayDiscountRate = computed(() => {
+  if (!canUseMemberDayDiscount.value) return 1
+  const rules = getMemberDayRulesInfo()
+  return rules.discount
+})
+
+const memberDayDiscountAmount = computed(() => {
+  if (!canUseMemberDayDiscount.value || hasSeckillItems.value) return 0
+  const regularTotal = regularItemsTotal.value
+  return regularTotal * (1 - memberDayDiscountRate.value)
+})
+
+const totalPrice = computed(() => {
+  const seckillTotal = seckillItemsTotal.value
+  const regularTotal = regularItemsTotal.value
+  return (seckillTotal + regularTotal).toFixed(2)
+})
+
+const discountedTotal = computed(() => {
+  const total = parseFloat(totalPrice.value)
+  const memberDiscount = memberDayDiscountAmount.value
+  return Math.max(0, total - memberDiscount)
+})
+
+const finalPrice = computed(() => {
+  const total = discountedTotal.value
+  const couponDiscount = hasSeckillItems.value ? 0 : couponDiscountAmount.value
+  return Math.max(0, total - couponDiscount).toFixed(2)
+})
+
+const showVipModal = ref(false)
+
+const handleMemberDayPurchase = () => {
+  if (!memberDayAccess.value.canAccess) {
+    showVipModal.value = true
+    return false
+  }
+  return true
+}
 
 const userAddresses = computed(() => {
   return mockUserAddresses.filter(a => a.userId === 1)
@@ -729,12 +952,6 @@ const unavailableCouponsForUse = computed(() => {
 const couponDiscountAmount = computed(() => {
   if (!selectedCoupon.value) return 0
   return calculateCouponDiscount(selectedCoupon.value)
-})
-
-const finalPrice = computed(() => {
-  const total = parseFloat(totalPrice.value)
-  const discount = couponDiscountAmount.value
-  return Math.max(0, total - discount).toFixed(2)
 })
 
 const isFavorite = (foodId) => {
@@ -1022,13 +1239,37 @@ const submitOrder = () => {
     return
   }
 
-  let confirmMessage = `您确认要提交订单吗？\n\n收货地址：${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.address}\n共 ${totalQuantity.value} 件商品`
-  
-  if (selectedCoupon.value) {
-    confirmMessage += `\n商品金额：¥${totalPrice.value}\n优惠券抵扣：-¥${couponDiscountAmount.value}\n实付金额：¥${finalPrice.value}`
-  } else {
-    confirmMessage += `\n总计：¥${totalPrice.value}`
+  if (hasMemberDayItems.value && !memberDayAccess.value.canAccess) {
+    ElMessageBox.confirm(
+      '您购物车中有会员日专属商品，开通会员后即可享受会员价优惠。是否立即开通会员？',
+      '开通会员提示',
+      {
+        confirmButtonText: '立即开通',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      router.push('/user/vip')
+    }).catch(() => {})
+    return
   }
+
+  if (hasSeckillItems.value && selectedCoupon.value) {
+    ElMessage.warning('秒杀商品不支持使用优惠券，已自动取消优惠券选择')
+    selectedCoupon.value = null
+  }
+
+  let confirmMessage = `您确认要提交订单吗？\n\n收货地址：${selectedAddress.value.province}${selectedAddress.value.city}${selectedAddress.value.district}${selectedAddress.value.address}\n共 ${totalQuantity.value} 件商品\n商品金额：¥${totalPrice.value}`
+  
+  if (memberDayDiscountAmount.value > 0) {
+    confirmMessage += `\n会员日折扣：-¥${memberDayDiscountAmount.value.toFixed(2)}`
+  }
+  
+  if (selectedCoupon.value && couponDiscountAmount.value > 0) {
+    confirmMessage += `\n优惠券抵扣：-¥${couponDiscountAmount.value.toFixed(2)}`
+  }
+  
+  confirmMessage += `\n实付金额：¥${finalPrice.value}`
 
   ElMessageBox.confirm(
     confirmMessage,
@@ -1042,7 +1283,12 @@ const submitOrder = () => {
     const orderItems = cartItems.value.map(item => ({
       name: item.name,
       quantity: item.quantity,
-      price: item.price
+      price: item.isSeckill ? (item.seckillPrice || item.price) : (item.memberPrice || item.price),
+      originalPrice: item.originalPrice || item.price,
+      isSeckill: item.isSeckill || false,
+      isMemberDaySpecial: item.isMemberDaySpecial || false,
+      seckillPrice: item.seckillPrice,
+      memberPrice: item.memberPrice
     }))
 
     const newOrder = {
@@ -1052,9 +1298,13 @@ const submitOrder = () => {
       phone: selectedAddress.value.phone,
       totalPrice: parseFloat(totalPrice.value),
       actualPrice: parseFloat(finalPrice.value),
-      discountAmount: couponDiscountAmount.value,
+      discountAmount: couponDiscountAmount.value + memberDayDiscountAmount.value,
       couponId: selectedCoupon.value?.couponId || null,
       couponName: selectedCoupon.value?.couponInfo?.name || null,
+      memberDayDiscount: memberDayDiscountAmount.value,
+      hasSeckillItems: hasSeckillItems.value,
+      hasMemberDayItems: hasMemberDayItems.value,
+      isMemberDay: isTodayMemberDayVal.value,
       status: 1,
       orderType: 'delivery',
       orderTime: new Date().toLocaleString(),
@@ -1164,11 +1414,28 @@ onMounted(() => {
   removeVipListener = onVipUpdated(() => {
     vipRefreshTrigger.value++
   })
+
+  updateCountdown()
+  bannerTimer = setInterval(() => {
+    updateCountdown()
+  }, 1000)
+
+  bannerAutoPlayTimer = setInterval(() => {
+    nextBanner()
+  }, 5000)
 })
 
 onUnmounted(() => {
   if (removeVipListener) {
     removeVipListener()
+  }
+  if (bannerTimer) {
+    clearInterval(bannerTimer)
+    bannerTimer = null
+  }
+  if (bannerAutoPlayTimer) {
+    clearInterval(bannerAutoPlayTimer)
+    bannerAutoPlayTimer = null
   }
 })
 
@@ -1273,6 +1540,204 @@ const handleLogout = () => {
 .menu-section {
   flex: 1;
   min-width: 0;
+}
+
+.promo-banner-section {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.promo-banner-wrapper {
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.promo-banner {
+  display: none;
+  cursor: pointer;
+  transition: all 0.5s ease;
+}
+
+.promo-banner.active {
+  display: block;
+}
+
+.banner-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28px 32px;
+  min-height: 120px;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.banner-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  width: fit-content;
+  backdrop-filter: blur(10px);
+}
+
+.banner-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  margin: 0;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.banner-desc {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+}
+
+.banner-action {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.action-text {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.banner-countdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  padding: 16px 24px;
+  border-radius: 16px;
+  margin: 0 20px;
+}
+
+.countdown-label {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+}
+
+.countdown-value {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.countdown-unit {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+}
+
+.countdown-num {
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  font-family: 'Courier New', monospace;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  min-width: 32px;
+  text-align: center;
+}
+
+.countdown-sep {
+  font-size: 28px;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.banner-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  border-radius: 50%;
+}
+
+.icon-text {
+  font-size: 40px;
+}
+
+.banner-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.indicator-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.indicator-dot.active {
+  background: #667eea;
+  width: 24px;
+  border-radius: 4px;
+}
+
+.banner-nav {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.nav-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  pointer-events: all;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  margin: 0 -20px;
+}
+
+.nav-btn:hover {
+  background: white;
+  transform: scale(1.1);
+}
+
+.nav-btn .el-icon {
+  color: #334155;
+  font-size: 18px;
 }
 
 .category-tabs {
