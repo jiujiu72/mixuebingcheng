@@ -39,6 +39,13 @@
       </div>
     </div>
 
+    <el-alert v-if="isOfflineMode" type="warning" :closable="false" class="offline-alert">
+      <template #title>
+        <span class="alert-title">当前处于离线状态</span>
+      </template>
+      <span class="alert-content">您无法进行抢单和订单操作，请先点击顶部开关切换到在线状态。</span>
+    </el-alert>
+
     <div class="pending-section">
       <div class="section-header">
         <h2 class="section-title">
@@ -105,8 +112,8 @@
               </span>
             </div>
             <div class="order-actions">
-              <el-button type="danger" size="large" @click="grabOrder(order)" :loading="order.grabbing">
-                立即抢单
+              <el-button type="danger" size="large" @click="grabOrder(order)" :loading="order.grabbing" :disabled="isOfflineMode">
+                {{ isOfflineMode ? '离线无法抢单' : '立即抢单' }}
               </el-button>
             </div>
           </div>
@@ -171,11 +178,11 @@
           </div>
 
           <div class="delivery-footer">
-            <el-button type="primary" size="small" @click="callUser(order)">
+            <el-button type="primary" size="small" @click="callUser(order)" :disabled="isOfflineMode">
               <el-icon><Phone /></el-icon>
               联系用户
             </el-button>
-            <el-button type="success" size="small" @click="completeDelivery(order)">
+            <el-button type="success" size="small" @click="completeDelivery(order)" :disabled="isOfflineMode">
               <el-icon><CircleCheck /></el-icon>
               确认送达
             </el-button>
@@ -199,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, inject } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Bell, Refresh, Van, Document, Star, Money,
@@ -208,6 +215,9 @@ import {
 import { mockOrders, mockDeliveryMen } from '../../../data/mockData'
 
 const currentDeliveryMan = ref(JSON.parse(localStorage.getItem('deliveryMan') || '{}'))
+
+const isOnline = inject('isOnline', ref(true))
+const isOfflineMode = computed(() => !isOnline.value)
 
 const todayIncome = ref(280)
 const todayOrders = ref(8)
@@ -280,6 +290,11 @@ const refreshOrders = () => {
 }
 
 const grabOrder = (order) => {
+  if (!isOnline.value) {
+    ElMessage.warning('您当前处于离线状态，请先切换到在线状态才能抢单')
+    return
+  }
+  
   ElMessageBox.confirm(`确定要抢订单 ${order.id} 吗？\n配送费: ¥${getDeliveryFee(order)}`, '抢单确认', {
     confirmButtonText: '确定抢单',
     cancelButtonText: '取消',
@@ -308,10 +323,18 @@ const grabOrder = (order) => {
 }
 
 const callUser = (order) => {
+  if (!isOnline.value) {
+    ElMessage.warning('您当前处于离线状态，请先切换到在线状态')
+    return
+  }
   ElMessage.info(`正在拨打 ${order.phone}`)
 }
 
 const completeDelivery = (order) => {
+  if (!isOnline.value) {
+    ElMessage.warning('您当前处于离线状态，请先切换到在线状态')
+    return
+  }
   orderToComplete.value = order
   confirmDialogVisible.value = true
 }
@@ -431,6 +454,21 @@ onUnmounted(() => {
   font-size: 22px;
   font-weight: 700;
   color: #1e293b;
+}
+
+.offline-alert {
+  margin-bottom: 24px;
+  border-radius: 16px;
+}
+
+.offline-alert :deep(.el-alert__title) {
+  font-weight: 600;
+  color: #92400e;
+}
+
+.offline-alert :deep(.el-alert__description) {
+  font-size: 14px;
+  color: #b45309;
 }
 
 .pending-section,
