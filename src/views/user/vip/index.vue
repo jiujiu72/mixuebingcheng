@@ -99,7 +99,7 @@
             v-for="(item, index) in vipLeaderboard"
             :key="item.userId"
             class="ranking-item"
-            :class="{ 'current-user': item.userId === currentUserId"
+            :class="{ 'current-user': item.userId === currentUserId }"
           >
             <div class="ranking-number" :class="'rank-' + item.rank">
               <span v-if="item.rank <= 3">{{ item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉' }}</span>
