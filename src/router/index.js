@@ -16,6 +16,7 @@ import DeliveryMan from '../views/delivery/index.vue'
 import DeliveryDashboard from '../views/delivery/dashboard/index.vue'
 import DeliveryOrders from '../views/delivery/orders/index.vue'
 import DeliveryReviews from '../views/delivery/reviews/index.vue'
+import DeliveryOrderDetail from '../views/delivery/order-detail/index.vue'
 import UserAddress from '../views/user/address/index.vue'
 import UserOrders from '../views/user/orders/index.vue'
 import OrderTracking from '../views/user/tracking/index.vue'
@@ -211,6 +212,11 @@ const routes = [
         path: 'orders',
         name: 'DeliveryOrders',
         component: DeliveryOrders
+      },
+      {
+        path: 'order/:orderId',
+        name: 'DeliveryOrderDetail',
+        component: DeliveryOrderDetail
       },
       {
         path: 'reviews',
