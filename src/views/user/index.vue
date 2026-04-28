@@ -1,53 +1,59 @@
 <template>
   <div class="user-management">
-    <h2 class="page-title">用户管理</h2>
-
-    <div class="search-bar">
-      <el-input
-        v-model="searchKeyword"
-        placeholder="搜索用户名、姓名、手机号..."
-        style="width: 300px;"
-        clearable
-        @change="handleSearch"
-      >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
-      <el-select v-model="statusFilter" placeholder="状态筛选" style="width: 150px;" @change="handleSearch">
-        <el-option label="全部" :value="-1" />
-        <el-option label="正常" :value="1" />
-        <el-option label="禁用" :value="0" />
-      </el-select>
+    <header class="page-header">
+      <h1 class="page-title">用户管理</h1>
       <el-button type="primary" @click="handleAdd">
         <el-icon><Plus /></el-icon>
         新增用户
       </el-button>
-    </div>
+    </header>
 
-    <div class="table-container">
-      <el-table :data="filteredUsers" style="width: 100%" v-loading="loading">
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" width="120" />
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="phone" label="手机号" width="130" />
-        <el-table-column prop="email" label="邮箱" width="180" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">
-              {{ row.status === 1 ? '正常' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="注册时间" width="180" />
-        <el-table-column label="操作" fixed="right" width="180">
-          <template #default="{ row }">
-            <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
+    <main class="page-container">
+      <div class="card search-bar-card">
+        <div class="search-bar">
+          <el-input
+            v-model="searchKeyword"
+            placeholder="搜索用户名、姓名、手机号..."
+            style="width: 300px;"
+            clearable
+            @change="handleSearch"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
+          <el-select v-model="statusFilter" placeholder="状态筛选" style="width: 150px;" @change="handleSearch">
+            <el-option label="全部" :value="-1" />
+            <el-option label="正常" :value="1" />
+            <el-option label="禁用" :value="0" />
+          </el-select>
+        </div>
+      </div>
+
+      <div class="card table-container">
+        <el-table :data="filteredUsers" style="width: 100%" v-loading="loading">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="username" label="用户名" width="120" />
+          <el-table-column prop="name" label="姓名" width="100" />
+          <el-table-column prop="phone" label="手机号" width="130" />
+          <el-table-column prop="email" label="邮箱" width="180" />
+          <el-table-column prop="status" label="状态" width="100">
+            <template #default="{ row }">
+              <span :class="['badge', row.status === 1 ? 'badge-success' : 'badge-error']">
+                {{ row.status === 1 ? '正常' : '禁用' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="注册时间" width="180" />
+          <el-table-column label="操作" fixed="right" width="180">
+            <template #default="{ row }">
+              <el-button type="primary" link size="small" @click="handleEdit(row)">编辑</el-button>
+              <el-button type="danger" link size="small" @click="handleDelete(row)">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </main>
 
     <el-dialog
       v-model="dialogVisible"
@@ -224,28 +230,104 @@ const handleSubmit = async () => {
 
 <style scoped>
 .user-management {
-  max-width: 1400px;
-  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
 }
 
-.page-title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 24px 0;
+.search-bar-card {
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
 }
 
 .search-bar {
   display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--spacing-md);
   flex-wrap: wrap;
 }
 
 .table-container {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  padding: var(--spacing-lg);
+}
+
+:deep(.el-table) {
+  --el-table-bg-color: transparent;
+  --el-table-tr-bg-color: transparent;
+  --el-table-header-bg-color: var(--slate-50);
+  --el-table-row-hover-bg-color: var(--slate-50);
+  --el-table-border-color: var(--border-primary);
+}
+
+:deep(.el-table th) {
+  background: var(--slate-50);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+:deep(.el-table td) {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background: var(--slate-50);
+}
+
+:deep(.el-button--primary.is-link) {
+  color: var(--primary-600);
+}
+
+:deep(.el-button--danger.is-link) {
+  color: var(--error-600);
+}
+
+:deep(.el-dialog) {
+  --el-dialog-border-radius: var(--radius-lg);
+}
+
+:deep(.el-dialog__header) {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+:deep(.el-dialog__title) {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+:deep(.el-dialog__body) {
+  padding: var(--spacing-xl);
+}
+
+:deep(.el-dialog__footer) {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-top: 1px solid var(--border-primary);
+}
+
+:deep(.el-form-item__label) {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+:deep(.el-input__wrapper) {
+  border-radius: var(--radius-md);
+}
+
+:deep(.el-radio__label) {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .search-bar {
+    flex-direction: column;
+  }
+  
+  .search-bar .el-input,
+  .search-bar .el-select {
+    width: 100% !important;
+  }
 }
 </style>

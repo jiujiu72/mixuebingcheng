@@ -1,7 +1,7 @@
 <template>
   <div class="user-vip-container">
-    <header class="vip-header">
-      <div class="header-left">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
@@ -10,228 +10,218 @@
       </div>
     </header>
 
-    <div class="vip-banner" :class="{ 'expired': vipDaysRemaining === 0, 'active': isVipActive }">
-      <div class="banner-content">
-        <div class="vip-info">
-          <div class="vip-icon">{{ currentVip?.vipInfo?.icon || '👤' }}</div>
-          <div class="vip-details">
+    <div class="page-container">
+      <div class="vip-summary-card card">
+        <div class="vip-summary-left">
+          <div class="vip-avatar-wrapper">
+            <div class="vip-avatar">{{ currentVip?.vipInfo?.icon || '👤' }}</div>
+          </div>
+          <div class="vip-summary-info">
             <div class="vip-name-row">
               <span class="vip-name">{{ currentVip?.vipInfo?.name || '普通会员' }}</span>
-              <el-tag 
+              <span 
                 v-if="isVipActive" 
-                type="success" 
-                size="small"
-                class="vip-status-tag"
+                class="badge badge-success"
               >
                 已激活
-              </el-tag>
-              <el-tag 
+              </span>
+              <span 
                 v-else-if="vipDaysRemaining === 0 && currentVip?.level > 0" 
-                type="danger" 
-                size="small"
-                class="vip-status-tag"
+                class="badge badge-error"
               >
                 已过期
-              </el-tag>
-            </div>
-            <div class="vip-discount">
-              专属折扣：<span class="discount-value">{{ (currentVip?.discount || 1) * 10 }}折</span>
-            </div>
-            <div class="vip-validity" v-if="currentVip?.endTime && currentVip?.level > 0">
-              <el-icon><Clock /></el-icon>
-              <span v-if="vipDaysRemaining > 0">
-                有效期至：{{ formatDate(currentVip?.endTime) }}（剩余{{ vipDaysRemaining }}天）
               </span>
-              <span v-else class="expired-text">
-                已过期，请续费
+            </div>
+            <div class="vip-meta-row">
+              <span class="vip-meta-item">
+                <span class="vip-meta-label">专属折扣</span>
+                <span class="vip-meta-value">{{ (currentVip?.discount || 1) * 10 }}折</span>
+              </span>
+              <span v-if="currentVip?.endTime && currentVip?.level > 0" class="vip-meta-item">
+                <span class="vip-meta-label">有效期</span>
+                <span class="vip-meta-value">
+                  <span v-if="vipDaysRemaining > 0">
+                    {{ formatDate(currentVip?.endTime) }}（剩余{{ vipDaysRemaining }}天）
+                  </span>
+                  <span v-else class="expired">已过期</span>
+                </span>
               </span>
             </div>
           </div>
         </div>
-        <div class="vip-stats">
+        <div class="vip-summary-stats">
           <div class="stat-item">
-            <div class="stat-value">{{ currentVip?.totalSpent || 0 }}</div>
-            <div class="stat-label">累计消费(元)</div>
+            <div class="stat-num">{{ currentVip?.totalSpent || 0 }}</div>
+            <div class="stat-text">累计消费(元)</div>
           </div>
+          <div class="stat-divider"></div>
           <div class="stat-item">
-            <div class="stat-value">{{ currentVip?.totalOrders || 0 }}</div>
-            <div class="stat-label">累计订单</div>
+            <div class="stat-num">{{ currentVip?.totalOrders || 0 }}</div>
+            <div class="stat-text">累计订单</div>
           </div>
+          <div class="stat-divider"></div>
           <div class="stat-item">
-            <div class="stat-value rank-value">#{{ vipRanking?.rank || '-' }}</div>
-            <div class="stat-label">会员排名</div>
+            <div class="stat-num rank-num">#{{ vipRanking?.rank || '-' }}</div>
+            <div class="stat-text">会员排名</div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="vip-progress">
-      <div class="progress-card">
+      <div v-if="nextVipLevel" class="progress-card card">
         <div class="progress-header">
-          <span class="progress-title">升级进度</span>
-          <span class="progress-text">
-            {{ currentVip?.totalSpent || 0 }} / {{ nextVipLevel?.minPoints || '∞' }}
-          </span>
+          <span class="progress-label">升级进度</span>
+          <span class="progress-meta">{{ currentVip?.totalSpent || 0 }} / {{ nextVipLevel?.minPoints || '∞' }}</span>
         </div>
         <el-progress 
           :percentage="upgradeProgress" 
-          :status="upgradeProgress >= 100 ? 'success' : ''"
-          :stroke-width="12"
+          :stroke-width="8"
+          :color="getProgressColor"
+          :show-text="false"
         />
-        <div class="progress-info">
+        <div class="progress-hint">
           <span v-if="nextVipLevel">
-            距离 {{ nextVipLevel.name }} 还需消费 
+            距离 <span class="highlight">{{ nextVipLevel.name }}</span> 还需消费 
             <span class="highlight">{{ Math.max(0, (nextVipLevel.minPoints || 0) - (currentVip?.totalSpent || 0)) }}</span> 元
           </span>
           <span v-else>您已达到最高等级</span>
         </div>
       </div>
-    </div>
 
-    <div class="vip-ranking-section" v-if="vipLeaderboard.length > 0">
-      <div class="ranking-card">
-        <div class="ranking-header">
-          <span class="ranking-title">会员排行榜</span>
-          <span class="ranking-subtitle">您的排名：第 {{ vipRanking?.rank || '-' }} 名 / 共 {{ vipRanking?.totalUsers || 0 }} 人</span>
+      <div v-if="vipLeaderboard.length > 0" class="ranking-card card">
+        <div class="card-header">
+          <span class="card-title">会员排行榜</span>
+          <span class="card-subtitle">您的排名：第 {{ vipRanking?.rank || '-' }} 名 / 共 {{ vipRanking?.totalUsers || 0 }} 人</span>
         </div>
         <div class="ranking-list">
           <div
             v-for="(item, index) in vipLeaderboard"
             :key="item.userId"
             class="ranking-item"
-            :class="{ 'current-user': item.userId === currentUserId }"
+            :class="{ 'is-current': item.userId === currentUserId }"
           >
-            <div class="ranking-number" :class="'rank-' + item.rank">
+            <div class="ranking-order" :class="'order-' + item.rank">
               <span v-if="item.rank <= 3">{{ item.rank === 1 ? '🥇' : item.rank === 2 ? '🥈' : '🥉' }}</span>
               <span v-else>{{ item.rank }}</span>
             </div>
-            <div class="ranking-avatar" :style="{ backgroundColor: item.levelColor + '20' }">
-              {{ item.levelIcon }}
-            </div>
-            <div class="ranking-info">
-              <div class="ranking-name">{{ item.levelName }}</div>
-              <div class="ranking-stats">消费 {{ item.totalSpent }} 元 · {{ item.totalOrders }} 单</div>
-            </div>
-            <div class="ranking-status">
-              <el-tag v-if="item.isActive" type="success" size="small">活跃</el-tag>
-              <el-tag v-else type="info" size="small">已过期</el-tag>
+            <div class="ranking-content">
+              <div class="ranking-info">
+                <span class="ranking-name">{{ item.levelName }}</span>
+                <span class="ranking-desc">消费 {{ item.totalSpent }} 元 · {{ item.totalOrders }} 单</span>
+              </div>
+              <div class="ranking-tag">
+                <span v-if="item.isActive" class="badge badge-success">活跃</span>
+                <span v-else class="badge badge-neutral">已过期</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="vip-tabs">
-      <el-tabs v-model="activeTab" type="card">
-        <el-tab-pane label="会员权益" name="benefits">
-          <div class="benefits-section">
+      <div class="tabs-container">
+        <el-tabs v-model="activeTab" type="border-card">
+          <el-tab-pane label="会员权益" name="benefits">
             <div class="benefits-grid">
               <div
                 v-for="benefit in availableBenefits"
                 :key="benefit.id"
                 class="benefit-card"
-                :class="{ 'unlocked': isBenefitUnlocked(benefit) }"
+                :class="{ 'is-unlocked': isBenefitUnlocked(benefit) }"
               >
-                <div class="benefit-icon">{{ benefit.icon }}</div>
+                <div class="benefit-icon-wrapper">
+                  <div class="benefit-icon">{{ benefit.icon }}</div>
+                </div>
                 <div class="benefit-info">
-                  <div class="benefit-name">{{ benefit.name }}</div>
-                  <div class="benefit-description">{{ benefit.description }}</div>
+                  <div class="benefit-title">{{ benefit.name }}</div>
+                  <div class="benefit-desc">{{ benefit.description }}</div>
                 </div>
                 <div class="benefit-status">
-                  <el-tag v-if="isBenefitUnlocked(benefit)" type="success" size="small">
-                    已解锁
-                  </el-tag>
-                  <el-tag v-else type="info" size="small">
-                    {{ getRequiredLevel(benefit.minLevel) }}解锁
-                  </el-tag>
+                  <span v-if="isBenefitUnlocked(benefit)" class="tag tag-success">已解锁</span>
+                  <span v-else class="tag tag-neutral">{{ getRequiredLevel(benefit.minLevel) }}解锁</span>
                 </div>
               </div>
             </div>
-          </div>
-        </el-tab-pane>
+          </el-tab-pane>
 
-        <el-tab-pane label="会员等级" name="levels">
-          <div class="levels-section">
+          <el-tab-pane label="会员等级" name="levels">
             <div class="levels-list">
               <div
                 v-for="(level, index) in vipLevels"
                 :key="level.id"
                 class="level-card"
                 :class="{ 
-                  'current': currentVip?.vipInfo?.id === level.id,
-                  'passed': currentVip?.vipInfo?.id > level.id
+                  'is-current': currentVip?.vipInfo?.id === level.id,
+                  'is-passed': currentVip?.vipInfo?.id > level.id
                 }"
               >
                 <div class="level-left">
-                  <div class="level-icon">{{ level.icon }}</div>
+                  <div class="level-icon-wrapper" :class="{
+                    'current': currentVip?.vipInfo?.id === level.id,
+                    'passed': currentVip?.vipInfo?.id > level.id
+                  }">
+                    <div class="level-icon">{{ level.icon }}</div>
+                  </div>
                   <div class="level-info">
                     <div class="level-name">{{ level.name }}</div>
-                    <div class="level-discount">专属折扣：{{ level.discount * 10 }}折</div>
-                    <div class="level-requirement" v-if="level.minPoints > 0">
+                    <div class="level-detail">专属折扣：{{ level.discount * 10 }}折</div>
+                    <div class="level-condition" v-if="level.minPoints > 0">
                       累计消费满 {{ level.minPoints }} 元
                     </div>
-                    <div class="level-requirement" v-else>
+                    <div class="level-condition" v-else>
                       注册即可成为会员
                     </div>
                   </div>
                 </div>
                 <div class="level-right">
-                  <el-tag v-if="currentVip?.vipInfo?.id === level.id" type="primary" size="small">
-                    当前等级
-                  </el-tag>
-                  <el-tag v-else-if="currentVip?.vipInfo?.id > level.id" type="success" size="small">
-                    已达成
-                  </el-tag>
-                  <el-tag v-else type="info" size="small">
-                    未达成
-                  </el-tag>
+                  <span v-if="currentVip?.vipInfo?.id === level.id" class="tag tag-primary">当前等级</span>
+                  <span v-else-if="currentVip?.vipInfo?.id > level.id" class="tag tag-success">已达成</span>
+                  <span v-else class="tag tag-neutral">未达成</span>
                 </div>
               </div>
             </div>
-          </div>
-        </el-tab-pane>
-      </el-tabs>
-    </div>
+          </el-tab-pane>
+        </el-tabs>
+      </div>
 
-    <div class="upgrade-section" v-if="availableUpgradeOptions.length > 0">
-      <div class="upgrade-card">
-        <div class="upgrade-header">
-          <h3>{{ currentVip?.level > 0 && isVipActive ? '续费/升级会员' : '升级会员' }}</h3>
-          <p>享受更多专属权益</p>
+      <div v-if="availableUpgradeOptions.length > 0" class="upgrade-section">
+        <div class="card-header">
+          <span class="card-title">{{ currentVip?.level > 0 && isVipActive ? '续费/升级会员' : '升级会员' }}</span>
+          <span class="card-subtitle">享受更多专属权益</span>
         </div>
         <div class="upgrade-options">
           <div 
             v-for="option in availableUpgradeOptions" 
             :key="option.id"
-            class="upgrade-option"
+            class="upgrade-card card card-clickable"
             :class="{ 
-              'recommended': option.recommended,
-              'disabled': !option.canPurchase 
+              'is-recommended': option.recommended,
+              'is-disabled': !option.canPurchase 
             }"
           >
-            <div class="option-badge" v-if="option.recommended">推荐</div>
-            <div class="option-name">{{ option.name }}</div>
-            <div class="option-duration">{{ option.duration }}</div>
-            <div class="option-price">
-              <span class="price-symbol">¥</span>
-              <span class="price-value">{{ option.price }}</span>
-              <span class="price-original" v-if="option.originalPrice">¥{{ option.originalPrice }}</span>
+            <div v-if="option.recommended" class="recommend-badge">推荐</div>
+            <div class="upgrade-header">
+              <span class="upgrade-name">{{ option.name }}</span>
+              <span class="upgrade-duration">{{ option.duration }}</span>
             </div>
-            <div class="option-benefits">
-              <div v-for="benefit in option.benefits" :key="benefit" class="benefit-item">
+            <div class="upgrade-price">
+              <span class="price-unit">¥</span>
+              <span class="price-num">{{ option.price }}</span>
+              <span v-if="option.originalPrice > option.price" class="price-original">¥{{ option.originalPrice }}</span>
+            </div>
+            <div class="upgrade-benefits">
+              <div v-for="benefit in option.benefits" :key="benefit" class="benefit-tag">
                 <el-icon><Check /></el-icon>
                 <span>{{ benefit }}</span>
               </div>
             </div>
             <el-button 
-              :type="option.canPurchase ? 'primary' : 'info'" 
+              :type="option.canPurchase ? 'primary' : 'default'" 
               class="upgrade-btn"
               :disabled="!option.canPurchase"
               @click="handleUpgrade(option)"
             >
               {{ option.canPurchase ? (option.type === 'renew' ? '立即续费' : '立即开通') : '不可购买' }}
             </el-button>
-            <div v-if="!option.canPurchase" class="unavailable-reason">
+            <div v-if="!option.canPurchase" class="unavailable-tip">
               <el-icon><Warning /></el-icon>
               <span>{{ option.unavailableReason }}</span>
             </div>
@@ -240,51 +230,51 @@
       </div>
     </div>
 
-    <div class="payment-overlay" v-if="showPaymentProcessing">
-      <div class="payment-modal">
-        <div class="payment-icon">
-          <el-icon class="loading-icon"><Loading /></el-icon>
+    <div v-if="showPaymentProcessing" class="overlay">
+      <div class="overlay-content">
+        <div class="overlay-icon">
+          <el-icon class="loading-spinner"><Loading /></el-icon>
         </div>
-        <div class="payment-title">支付处理中</div>
-        <div class="payment-text">正在处理您的支付请求，请稍候...</div>
+        <div class="overlay-title">支付处理中</div>
+        <div class="overlay-desc">正在处理您的支付请求，请稍候...</div>
       </div>
     </div>
 
     <el-dialog
       v-model="showSuccessModal"
-      title="支付成功"
       width="420px"
       :show-close="false"
       :close-on-click-modal="false"
       class="success-dialog"
+      center
     >
       <div class="success-content">
         <div class="success-icon">
           <el-icon><CircleCheck /></el-icon>
         </div>
         <div class="success-title">
-          {{ successModalData?.action }}成功！
+          {{ successModalData?.action }}成功
         </div>
         <div class="success-details">
-          <div class="detail-item">
-            <span class="detail-label">套餐名称：</span>
+          <div class="detail-row">
+            <span class="detail-label">套餐名称</span>
             <span class="detail-value">{{ successModalData?.packageName }}</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">会员等级：</span>
+          <div class="detail-row">
+            <span class="detail-label">会员等级</span>
             <span class="detail-value">{{ successModalData?.targetLevel?.name }}</span>
           </div>
-          <div class="detail-item">
-            <span class="detail-label">支付金额：</span>
+          <div class="detail-row">
+            <span class="detail-label">支付金额</span>
             <span class="detail-value price">¥{{ successModalData?.price }}</span>
           </div>
-          <div class="detail-item" v-if="successModalData?.newEndTime">
-            <span class="detail-label">有效期至：</span>
+          <div class="detail-row" v-if="successModalData?.newEndTime">
+            <span class="detail-label">有效期至</span>
             <span class="detail-value">{{ formatDate(successModalData?.newEndTime) }}</span>
           </div>
         </div>
         <div class="success-tip">
-          您已成功{{ successModalData?.action }}为{{ successModalData?.targetLevel?.name }}，会员权益立即生效！
+          您已成功{{ successModalData?.action }}为{{ successModalData?.targetLevel?.name }}，会员权益立即生效
         </div>
       </div>
       <template #footer>
@@ -367,6 +357,10 @@ const upgradeProgress = computed(() => {
   const nextMinPoints = nextVipLevel.value.minPoints || 0
   if (nextMinPoints === 0) return 100
   return Math.min(100, Math.round((currentSpent / nextMinPoints) * 100))
+})
+
+const getProgressColor = computed(() => {
+  return '#3b82f6'
 })
 
 const availableBenefits = computed(() => {
@@ -536,250 +530,333 @@ onUnmounted(() => {
 <style scoped>
 .user-vip-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
-.vip-header {
-  background: white;
-  padding: 16px 24px;
+.vip-summary-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
-.header-left {
+.vip-summary-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-xl);
 }
 
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
+.vip-avatar-wrapper {
+  position: relative;
 }
 
-.vip-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 24px;
-  transition: all 0.3s ease;
-}
-
-.vip-banner.expired {
-  background: linear-gradient(135deg, #64748b 0%, #475569 100%);
-}
-
-.vip-banner.active {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-}
-
-.banner-content {
-  max-width: 800px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.vip-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.vip-icon {
-  width: 72px;
-  height: 72px;
-  background: rgba(255, 255, 255, 0.2);
+.vip-avatar {
+  width: 64px;
+  height: 64px;
+  background: var(--slate-100);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 36px;
-  backdrop-filter: blur(10px);
+  font-size: 32px;
 }
 
-.vip-details {
+.vip-summary-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .vip-name-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .vip-name {
-  font-size: 24px;
-  font-weight: 700;
-  color: white;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
-.vip-status-tag {
-  margin-left: 8px;
-}
-
-.vip-validity {
+.vip-meta-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.9);
+  gap: var(--spacing-xl);
 }
 
-.vip-validity .expired-text {
-  color: #fecaca;
-  font-weight: 600;
-}
-
-.vip-discount {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.discount-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: white;
-}
-
-.vip-stats {
+.vip-meta-item {
   display: flex;
-  gap: 32px;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.vip-meta-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.vip-meta-value {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+
+.vip-meta-value .expired {
+  color: var(--error-600);
+  font-weight: var(--font-weight-semibold);
+}
+
+.vip-summary-stats {
+  display: flex;
+  align-items: center;
+  gap: 0;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-xl);
 }
 
-.stat-value {
-  font-size: 28px;
-  font-weight: 700;
-  color: white;
+.stat-num {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
   line-height: 1;
 }
 
-.stat-label {
-  font-size: 13px;
-  color: rgba(255, 255, 255, 0.8);
+.rank-num {
+  color: var(--primary-600);
 }
 
-.vip-progress {
-  padding: 20px;
+.stat-text {
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--border-primary);
 }
 
 .progress-card {
-  max-width: 800px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
 }
 
 .progress-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
-.progress-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
+.progress-label {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
 }
 
-.progress-text {
-  font-size: 14px;
-  color: #64748b;
+.progress-meta {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
-.progress-info {
-  margin-top: 12px;
-  font-size: 14px;
-  color: #64748b;
+.progress-hint {
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
   text-align: center;
 }
 
 .highlight {
-  font-weight: 600;
-  color: #667eea;
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-600);
 }
 
-.vip-tabs {
+.ranking-card {
+  padding: var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-lg);
+}
+
+.card-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.card-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.ranking-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.ranking-item:hover {
+  background: var(--slate-100);
+}
+
+.ranking-item.is-current {
+  background: var(--primary-50);
+  border: 1px solid var(--primary-200);
+}
+
+.ranking-order {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  background: var(--slate-200);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ranking-order.order-1 {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: white;
+}
+
+.ranking-order.order-2 {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  color: white;
+}
+
+.ranking-order.order-3 {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  color: white;
+}
+
+.ranking-content {
+  display: flex;
   flex: 1;
-  padding: 0 20px 20px;
-  max-width: 1000px;
-  margin: 0 auto;
-  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 0;
 }
 
-:deep(.el-tabs__nav-wrap) {
-  margin-bottom: 20px;
+.ranking-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
 }
 
-.benefits-section {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+.ranking-name {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.ranking-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.tabs-container {
+  margin-bottom: var(--spacing-lg);
+}
+
+:deep(.el-tabs--border-card > .el-tabs__header) {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+:deep(.el-tabs--border-card > .el-tabs__content) {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  padding: var(--spacing-xl);
+}
+
+:deep(.el-tabs__item) {
+  color: var(--text-secondary);
+}
+
+:deep(.el-tabs__item.is-active) {
+  color: var(--primary-600);
+}
+
+:deep(.el-tabs__active-bar) {
+  background-color: var(--primary-600);
 }
 
 .benefits-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-md);
 }
 
 .benefit-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-secondary);
+  transition: all var(--transition-fast);
 }
 
 .benefit-card:hover {
-  background: #f1f5f9;
-  border-color: #667eea;
-  transform: translateY(-2px);
+  background: var(--slate-100);
+  border-color: var(--primary-200);
 }
 
-.benefit-card.unlocked {
-  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
-  border-color: #667eea;
+.benefit-card.is-unlocked {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+}
+
+.benefit-icon-wrapper {
+  flex-shrink: 0;
 }
 
 .benefit-icon {
-  width: 48px;
-  height: 48px;
-  background: #e2e8f0;
+  width: 44px;
+  height: 44px;
+  background: var(--slate-200);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  flex-shrink: 0;
+  font-size: 22px;
 }
 
-.benefit-card.unlocked .benefit-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.benefit-card.is-unlocked .benefit-icon {
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
 }
 
 .benefit-info {
@@ -787,433 +864,259 @@ onUnmounted(() => {
   min-width: 0;
 }
 
-.benefit-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 4px;
+.benefit-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
-.benefit-description {
-  font-size: 13px;
-  color: #64748b;
+.benefit-desc {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
-.levels-section {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+.benefit-status {
+  flex-shrink: 0;
 }
 
 .levels-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .level-card {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
+  padding: var(--spacing-lg);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-secondary);
+  transition: all var(--transition-fast);
 }
 
 .level-card:hover {
-  background: #f1f5f9;
-  transform: translateX(4px);
+  background: var(--slate-100);
 }
 
-.level-card.current {
-  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
-  border-color: #667eea;
+.level-card.is-current {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
 }
 
-.level-card.passed {
-  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
-  border-color: #10b981;
+.level-card.is-passed {
+  background: var(--success-50);
+  border-color: var(--success-200);
 }
 
 .level-left {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-lg);
+}
+
+.level-icon-wrapper {
+  flex-shrink: 0;
 }
 
 .level-icon {
-  width: 56px;
-  height: 56px;
-  background: #e2e8f0;
+  width: 48px;
+  height: 48px;
+  background: var(--slate-200);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  flex-shrink: 0;
+  font-size: 24px;
 }
 
-.level-card.current .level-icon {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+.level-icon-wrapper.current .level-icon {
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
 }
 
-.level-card.passed .level-icon {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+.level-icon-wrapper.passed .level-icon {
+  background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);
 }
 
 .level-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .level-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
-.level-discount {
-  font-size: 14px;
-  color: #667eea;
+.level-detail {
+  font-size: var(--font-size-sm);
+  color: var(--primary-600);
 }
 
-.level-requirement {
-  font-size: 13px;
-  color: #94a3b8;
+.level-condition {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.level-right {
+  flex-shrink: 0;
 }
 
 .upgrade-section {
-  padding: 0 20px 40px;
-}
-
-.upgrade-card {
-  max-width: 1000px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.upgrade-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.upgrade-header h3 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 8px 0;
-}
-
-.upgrade-header p {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0;
+  margin-bottom: var(--spacing-3xl);
 }
 
 .upgrade-options {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
-.upgrade-option {
+.upgrade-card {
   position: relative;
-  background: #f8fafc;
-  border-radius: 16px;
-  padding: 24px;
+  padding: var(--spacing-xl);
   text-align: center;
-  border: 2px solid transparent;
-  transition: all 0.3s ease;
 }
 
-.upgrade-option:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+.upgrade-card.is-recommended {
+  border-color: var(--warning-300);
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 50%);
 }
 
-.upgrade-option.recommended {
-  border-color: #f59e0b;
-  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-}
-
-.upgrade-option.disabled {
-  opacity: 0.6;
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+.upgrade-card.is-disabled {
+  opacity: 0.5;
   pointer-events: none;
 }
 
-.upgrade-option.disabled .price-value,
-.upgrade-option.disabled .price-symbol {
-  color: #94a3b8;
-}
-
-.upgrade-option.disabled .option-benefits .benefit-item {
-  color: #94a3b8;
-}
-
-.upgrade-option.disabled .option-benefits .benefit-item .el-icon {
-  color: #94a3b8;
-}
-
-.unavailable-reason {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: #fef3c7;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #92400e;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  line-height: 1.4;
-}
-
-.unavailable-reason .el-icon {
-  flex-shrink: 0;
-}
-
-.option-badge {
+.recommend-badge {
   position: absolute;
   top: -10px;
-  right: 16px;
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  right: var(--spacing-lg);
+  background: var(--warning-500);
   color: white;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
 }
 
-.option-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 4px;
+.upgrade-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
 }
 
-.option-duration {
-  font-size: 13px;
-  color: #64748b;
-  margin-bottom: 16px;
+.upgrade-name {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
-.option-price {
+.upgrade-duration {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+}
+
+.upgrade-price {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 2px;
-  margin-bottom: 20px;
+  margin-bottom: var(--spacing-lg);
 }
 
-.price-symbol {
-  font-size: 16px;
-  font-weight: 600;
-  color: #ef4444;
+.price-unit {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-600);
 }
 
-.price-value {
-  font-size: 32px;
-  font-weight: 700;
-  color: #ef4444;
+.price-num {
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
   line-height: 1;
 }
 
 .price-original {
-  font-size: 14px;
-  color: #94a3b8;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
   text-decoration: line-through;
+  margin-left: var(--spacing-sm);
 }
 
-.option-benefits {
+.upgrade-benefits {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 20px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xl);
 }
 
-.benefit-item {
+.benefit-tag {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #64748b;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
-.benefit-item .el-icon {
-  color: #10b981;
+.benefit-tag .el-icon {
+  color: var(--success-500);
 }
 
 .upgrade-btn {
   width: 100%;
-  border-radius: 24px;
-  font-weight: 600;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
 }
 
-.rank-value {
-  color: #f59e0b;
-  font-weight: 700;
-}
-
-.vip-ranking-section {
-  padding: 0 20px;
-  margin-bottom: 20px;
-}
-
-.ranking-card {
-  max-width: 1000px;
-  margin: 0 auto;
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.ranking-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.ranking-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.ranking-subtitle {
-  font-size: 14px;
-  color: #64748b;
-}
-
-.ranking-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ranking-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.ranking-item:hover {
-  background: #f1f5f9;
-}
-
-.ranking-item.current-user {
-  background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 100%);
-  border: 1px solid #667eea;
-}
-
-.ranking-number {
-  width: 32px;
-  height: 32px;
+.unavailable-tip {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--warning-50);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+  color: var(--warning-700);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
-  font-weight: 700;
-  color: #64748b;
-  background: #e2e8f0;
-  border-radius: 50%;
-  flex-shrink: 0;
+  gap: var(--spacing-xs);
 }
 
-.ranking-number.rank-1 {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: white;
-}
-
-.ranking-number.rank-2 {
-  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
-  color: white;
-}
-
-.ranking-number.rank-3 {
-  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-  color: white;
-}
-
-.ranking-number span {
-  font-size: 18px;
-}
-
-.ranking-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  flex-shrink: 0;
-}
-
-.ranking-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.ranking-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 2px;
-}
-
-.ranking-stats {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.payment-overlay {
+.overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-.payment-modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
+.overlay-content {
+  background: var(--bg-primary);
+  border-radius: var(--radius-xl);
+  padding: var(--spacing-3xl);
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
 }
 
-.payment-icon {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.overlay-icon {
+  margin-bottom: var(--spacing-lg);
 }
 
-.loading-icon {
+.loading-spinner {
   font-size: 48px;
-  color: #667eea;
+  color: var(--primary-600);
   animation: spin 1s linear infinite;
 }
 
@@ -1222,32 +1125,24 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-.payment-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 8px;
+.overlay-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
 }
 
-.payment-text {
-  font-size: 14px;
-  color: #64748b;
+.overlay-desc {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .success-dialog :deep(.el-dialog__header) {
-  text-align: center;
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.success-dialog :deep(.el-dialog__title) {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
+  display: none;
 }
 
 .success-dialog :deep(.el-dialog__body) {
-  padding: 16px 24px 24px;
+  padding: var(--spacing-2xl) var(--spacing-xl) var(--spacing-xl);
 }
 
 .success-dialog :deep(.el-dialog__footer) {
@@ -1261,10 +1156,10 @@ onUnmounted(() => {
 }
 
 .success-icon {
-  width: 72px;
-  height: 72px;
-  margin: 0 auto 20px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  width: 64px;
+  height: 64px;
+  margin: 0 auto var(--spacing-xl);
+  background: linear-gradient(135deg, var(--success-500) 0%, var(--success-600) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1272,144 +1167,142 @@ onUnmounted(() => {
 }
 
 .success-icon .el-icon {
-  font-size: 40px;
+  font-size: 36px;
   color: white;
 }
 
 .success-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 20px;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xl);
 }
 
 .success-details {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
-.detail-item {
+.detail-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #e2e8f0;
+  align-items: center;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-primary);
 }
 
-.detail-item:last-child {
+.detail-row:last-child {
   border-bottom: none;
 }
 
 .detail-label {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .detail-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
 }
 
 .detail-value.price {
-  color: #ef4444;
-  font-size: 18px;
+  color: var(--primary-600);
+  font-size: var(--font-size-lg);
 }
 
 .success-tip {
-  font-size: 14px;
-  color: #64748b;
-  line-height: 1.6;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
 }
 
 .success-btn {
-  width: 160px;
-  border-radius: 24px;
-  font-weight: 600;
+  width: 140px;
+  border-radius: var(--radius-md);
+  font-weight: var(--font-weight-medium);
 }
 
 @media (max-width: 768px) {
-  .vip-header {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .vip-banner {
-    padding: 16px;
-  }
-
-  .banner-content {
+  .vip-summary-card {
     flex-direction: column;
-    gap: 20px;
+    align-items: flex-start;
+    gap: var(--spacing-xl);
+    padding: var(--spacing-lg);
   }
 
-  .vip-stats {
+  .vip-summary-left {
+    width: 100%;
+  }
+
+  .vip-summary-stats {
     width: 100%;
     justify-content: space-around;
-    gap: 0;
   }
 
-  .vip-progress {
-    padding: 16px;
+  .stat-item {
+    padding: 0;
   }
 
-  .vip-tabs {
-    padding: 0 16px 16px;
+  .stat-divider {
+    display: none;
   }
 
-  .benefits-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .upgrade-section {
-    padding: 0 16px 32px;
+  .progress-card,
+  .ranking-card {
+    padding: var(--spacing-lg);
   }
 
   .upgrade-options {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: var(--spacing-md);
+  }
+
+  .levels-list {
+    gap: var(--spacing-sm);
   }
 
   .level-card {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--spacing-md);
   }
 
   .level-right {
     width: 100%;
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  .vip-ranking-section {
-    padding: 0 16px;
-  }
-
-  .ranking-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
   }
 
   .ranking-item {
     flex-wrap: wrap;
   }
 
-  .ranking-status {
+  .ranking-tag {
     width: 100%;
-    margin-top: 8px;
+    margin-top: var(--spacing-sm);
   }
 
-  .payment-modal {
-    margin: 0 16px;
-    padding: 24px;
+  .benefits-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .benefit-card {
+    flex-wrap: wrap;
+  }
+
+  .benefit-status {
+    width: 100%;
+    margin-top: var(--spacing-sm);
+  }
+
+  .overlay-content {
+    margin: 0 var(--spacing-lg);
+    padding: var(--spacing-xl);
   }
 
   .success-dialog :deep(.el-dialog) {
-    margin: 16px;
+    margin: var(--spacing-lg);
     width: auto !important;
   }
 }

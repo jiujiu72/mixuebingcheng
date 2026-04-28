@@ -1,19 +1,19 @@
 <template>
-  <div class="user-favorites-container">
-    <header class="favorites-header">
-      <div class="header-left">
+  <div class="page-container">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
         <h1 class="page-title">我的收藏</h1>
-        <el-tag type="primary" size="small">{{ favorites.length }} 件商品</el-tag>
+        <span v-if="favorites.length > 0" class="tag tag-primary">{{ favorites.length }} 件商品</span>
       </div>
       <el-button 
         v-if="favorites.length > 0" 
-        type="danger" 
-        text
+        text 
         @click="handleClearAll"
+        style="color: var(--error-600)"
       >
         <el-icon><Delete /></el-icon>
         清空收藏
@@ -25,7 +25,7 @@
         <div
           v-for="item in favorites"
           :key="item.id"
-          class="favorite-card"
+          class="card favorite-card"
         >
           <div class="card-image" @click="goToFoodDetail(item)">
             <img :src="item.foodInfo?.image" :alt="item.foodInfo?.name" />
@@ -56,9 +56,9 @@
                   加入购物车
                 </el-button>
                 <el-button 
-                  type="danger" 
                   text 
                   size="small"
+                  style="color: var(--error-600)"
                   @click="removeFromFavorites(item)"
                 >
                   <el-icon><Delete /></el-icon>
@@ -71,11 +71,11 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-icon">
-          <el-icon :size="80"><Star /></el-icon>
+        <div class="empty-state-icon">
+          <el-icon :size="48"><Star /></el-icon>
         </div>
-        <p class="empty-title">暂无收藏商品</p>
-        <p class="empty-text">快去收藏喜欢的菜品吧~</p>
+        <p class="empty-state-title">暂无收藏商品</p>
+        <p class="empty-state-text">快去收藏喜欢的菜品吧</p>
         <el-button type="primary" @click="goToHome">
           <el-icon><Shop /></el-icon>
           去逛逛
@@ -199,64 +199,31 @@ const handleClearAll = () => {
 </script>
 
 <style scoped>
-.user-favorites-container {
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
   min-height: 100vh;
-  background: #f5f7fa;
-  display: flex;
-  flex-direction: column;
-}
-
-.favorites-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
 }
 
 .favorites-main {
-  flex: 1;
-  padding: 20px;
+  margin-top: var(--spacing-xl);
 }
 
 .favorites-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
+  gap: var(--spacing-xl);
 }
 
 .favorite-card {
-  background: white;
-  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-normal);
 }
 
 .favorite-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
 }
 
 .card-image {
@@ -264,7 +231,7 @@ const handleClearAll = () => {
   width: 100%;
   height: 180px;
   overflow: hidden;
-  background: #f1f5f9;
+  background: var(--slate-100);
   cursor: pointer;
 }
 
@@ -272,7 +239,7 @@ const handleClearAll = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform var(--transition-slow);
 }
 
 .favorite-card:hover .card-image img {
@@ -281,35 +248,39 @@ const handleClearAll = () => {
 
 .favorite-badge {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  border-radius: 50%;
+  background: var(--error-500);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 .card-content {
-  padding: 16px;
+  padding: var(--spacing-lg);
 }
 
 .item-name {
-  font-size: 16px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0 0 6px 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .item-description {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0 0 16px 0;
-  line-height: 1.5;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-lg) 0;
+  line-height: var(--line-height-normal);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-footer {
@@ -321,53 +292,26 @@ const handleClearAll = () => {
 .price-section {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .current-price {
-  font-size: 20px;
-  font-weight: 700;
-  color: #667eea;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
 }
 
 .original-price {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
   text-decoration: line-through;
 }
 
 .action-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
   align-items: flex-end;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-}
-
-.empty-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #64748b;
-  margin: 0 0 8px 0;
-}
-
-.empty-text {
-  font-size: 14px;
-  color: #94a3b8;
-  margin: 0 0 20px 0;
 }
 
 .mobile-cart-button {
@@ -377,19 +321,14 @@ const handleClearAll = () => {
   right: 24px;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 50%;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.5);
+  background: var(--primary-600);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
   cursor: pointer;
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.mobile-cart-button :deep(svg) {
-  width: 28px;
-  height: 28px;
   color: white;
 }
 
@@ -397,35 +336,38 @@ const handleClearAll = () => {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #ef4444;
+  background: var(--error-500);
   color: white;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   padding: 2px 8px;
-  border-radius: 10px;
+  border-radius: var(--radius-full);
   min-width: 20px;
   text-align: center;
 }
 
 @media (max-width: 768px) {
-  .favorites-header {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 12px;
+  .page-container {
+    padding: var(--spacing-lg);
   }
 
-  .header-left {
+  .page-header {
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .page-header-left {
     flex-wrap: wrap;
     width: 100%;
   }
 
   .favorites-main {
-    padding: 16px;
+    margin-top: var(--spacing-lg);
   }
 
   .favorites-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 12px;
+    gap: var(--spacing-lg);
   }
 
   .card-image {
@@ -433,20 +375,20 @@ const handleClearAll = () => {
   }
 
   .card-content {
-    padding: 12px;
+    padding: var(--spacing-md);
   }
 
   .item-name {
-    font-size: 14px;
+    font-size: var(--font-size-base);
   }
 
   .current-price {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
 
   .card-footer {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--spacing-md);
     align-items: flex-start;
   }
 

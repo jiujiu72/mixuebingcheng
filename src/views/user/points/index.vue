@@ -1,7 +1,7 @@
 <template>
-  <div class="user-points-container">
-    <header class="points-header">
-      <div class="header-left">
+  <div class="page-container">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
@@ -15,33 +15,35 @@
     </header>
 
     <div class="points-summary">
-      <div class="summary-card">
-        <div class="summary-item">
-          <div class="summary-value">{{ userPoints?.availablePoints || 0 }}</div>
-          <div class="summary-label">可用积分</div>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-item">
-          <div class="summary-value">{{ userPoints?.totalPoints || 0 }}</div>
-          <div class="summary-label">累计积分</div>
-        </div>
-        <div class="summary-divider"></div>
-        <div class="summary-item">
-          <div class="summary-value">{{ userPoints?.historyPoints || 0 }}</div>
-          <div class="summary-label">已使用</div>
+      <div class="stat-card" style="background: var(--primary-600); border-color: var(--primary-600);">
+        <div class="points-stats">
+          <div class="points-stat-item">
+            <div class="points-value">{{ userPoints?.availablePoints || 0 }}</div>
+            <div class="points-label">可用积分</div>
+          </div>
+          <div class="points-divider" style="background: rgba(255,255,255,0.2);"></div>
+          <div class="points-stat-item">
+            <div class="points-value">{{ userPoints?.totalPoints || 0 }}</div>
+            <div class="points-label">累计积分</div>
+          </div>
+          <div class="points-divider" style="background: rgba(255,255,255,0.2);"></div>
+          <div class="points-stat-item">
+            <div class="points-value">{{ userPoints?.historyPoints || 0 }}</div>
+            <div class="points-label">已使用</div>
+          </div>
         </div>
       </div>
     </div>
 
     <div class="points-tabs">
-      <el-tabs v-model="activeTab" type="card">
+      <el-tabs v-model="activeTab" class="tabs-custom">
         <el-tab-pane label="积分明细" name="history">
           <div class="points-history">
             <div class="history-list">
               <div
                 v-for="item in pointsHistory"
                 :key="item.id"
-                class="history-item"
+                class="card history-item"
               >
                 <div class="history-icon" :class="item.type">
                   <el-icon v-if="item.type === 'earn'"><Plus /></el-icon>
@@ -60,10 +62,11 @@
               </div>
 
               <div v-if="pointsHistory.length === 0" class="empty-state">
-                <div class="empty-icon">
-                  <el-icon :size="80"><Document /></el-icon>
+                <div class="empty-state-icon">
+                  <el-icon :size="48"><Document /></el-icon>
                 </div>
-                <p class="empty-text">暂无积分明细</p>
+                <p class="empty-state-title">暂无积分明细</p>
+                <p class="empty-state-text">签到、消费均可获得积分</p>
               </div>
             </div>
           </div>
@@ -75,7 +78,7 @@
               <div
                 v-for="goods in pointsGoods"
                 :key="goods.id"
-                class="goods-card"
+                class="card goods-card"
                 :class="{ 'out-of-stock': goods.stock <= 0 }"
               >
                 <div class="goods-image">
@@ -105,10 +108,11 @@
               </div>
 
               <div v-if="pointsGoods.length === 0" class="empty-state">
-                <div class="empty-icon">
-                  <el-icon :size="80"><Goods /></el-icon>
+                <div class="empty-state-icon">
+                  <el-icon :size="48"><Goods /></el-icon>
                 </div>
-                <p class="empty-text">暂无可兑换的商品</p>
+                <p class="empty-state-title">暂无可兑换的商品</p>
+                <p class="empty-state-text">更多兑换商品即将上线</p>
               </div>
             </div>
           </div>
@@ -229,6 +233,7 @@ const handleSignIn = () => {
     mockPointsHistory.unshift(newHistory)
 
     isSignedInToday.value = true
+    localStorage.setItem('lastSignIn', new Date().toDateString())
     ElMessage.success(`签到成功！获得 ${signInPoints} 积分`)
   }).catch(() => {})
 }
@@ -288,138 +293,116 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.user-points-container {
+.page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
   min-height: 100vh;
-  background: #f5f7fa;
-  display: flex;
-  flex-direction: column;
-}
-
-.points-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
 }
 
 .points-summary {
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin-top: var(--spacing-xl);
 }
 
-.summary-card {
-  max-width: 800px;
-  margin: 0 auto;
+.points-stats {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 24px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
+  padding: var(--spacing-xl);
+  color: white;
 }
 
-.summary-item {
+.points-stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
 }
 
-.summary-value {
-  font-size: 36px;
-  font-weight: 700;
-  color: white;
+.points-value {
+  font-size: var(--font-size-5xl);
+  font-weight: var(--font-weight-bold);
   line-height: 1;
 }
 
-.summary-label {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
+.points-label {
+  font-size: var(--font-size-sm);
+  opacity: 0.9;
 }
 
-.summary-divider {
+.points-divider {
   width: 1px;
-  height: 60px;
-  background: rgba(255, 255, 255, 0.3);
+  height: 50px;
 }
 
 .points-tabs {
-  flex: 1;
-  padding: 20px;
-  max-width: 1000px;
-  margin: 0 auto;
-  width: 100%;
+  margin-top: var(--spacing-xl);
 }
 
-:deep(.el-tabs__nav-wrap) {
-  margin-bottom: 20px;
+:deep(.tabs-custom .el-tabs__nav-wrap) {
+  margin-bottom: var(--spacing-xl);
 }
 
-.points-history {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+:deep(.tabs-custom .el-tabs__item) {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  height: 40px;
+  line-height: 40px;
+}
+
+:deep(.tabs-custom .el-tabs__item.is-active) {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-medium);
+}
+
+:deep(.tabs-custom .el-tabs__active-bar) {
+  background-color: var(--primary-600);
+  height: 2px;
+}
+
+:deep(.tabs-custom .el-tabs__nav-wrap::after) {
+  background-color: var(--border-primary);
+  height: 1px;
+}
+
+.points-history,
+.points-exchange {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
 }
 
 .history-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .history-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-
-.history-item:hover {
-  background: #f1f5f9;
-  transform: translateX(4px);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg);
 }
 
 .history-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: white;
 }
 
 .history-icon.earn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
+  background: var(--success-500);
 }
 
 .history-icon.spend {
-  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  color: white;
+  background: var(--error-500);
 }
 
 .history-info {
@@ -428,64 +411,48 @@ onMounted(() => {
 }
 
 .history-reason {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-bottom: 4px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .history-time {
-  font-size: 13px;
-  color: #94a3b8;
-  margin-bottom: 4px;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .history-order {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .history-points {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
   flex-shrink: 0;
 }
 
 .history-points.earn {
-  color: #10b981;
+  color: var(--success-600);
 }
 
 .history-points.spend {
-  color: #ef4444;
-}
-
-.points-exchange {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  color: var(--error-600);
 }
 
 .exchange-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
 .goods-card {
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
-  border-radius: 16px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.goods-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  padding: 0;
 }
 
 .goods-card.out-of-stock {
@@ -495,9 +462,9 @@ onMounted(() => {
 .goods-image {
   position: relative;
   width: 100%;
-  height: 160px;
+  height: 150px;
   overflow: hidden;
-  background: #e2e8f0;
+  background: var(--slate-100);
 }
 
 .goods-image img {
@@ -519,35 +486,36 @@ onMounted(() => {
 }
 
 .out-of-stock-overlay span {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   color: white;
 }
 
 .goods-info {
-  padding: 16px;
+  padding: var(--spacing-lg);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  flex: 1;
 }
 
 .goods-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
 }
 
 .goods-description {
-  font-size: 13px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
   flex: 1;
+  margin-bottom: var(--spacing-md);
 }
 
 .goods-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
 }
 
 .goods-points {
@@ -557,34 +525,14 @@ onMounted(() => {
 }
 
 .points-value {
-  font-size: 20px;
-  font-weight: 700;
-  color: #667eea;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
 }
 
 .points-label {
-  font-size: 13px;
-  color: #94a3b8;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #64748b;
-  margin: 0 0 20px 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .exchange-dialog-content {
@@ -593,14 +541,14 @@ onMounted(() => {
 
 .exchange-goods-info {
   display: flex;
-  gap: 20px;
+  gap: var(--spacing-lg);
   align-items: flex-start;
 }
 
 .goods-preview {
-  width: 120px;
-  height: 120px;
-  border-radius: 12px;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
 }
@@ -609,75 +557,85 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .goods-details .goods-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: 0;
 }
 
 .goods-details .goods-description {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 .exchange-points,
 .current-points {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .points-highlight {
-  font-size: 18px;
-  font-weight: 700;
-  color: #ef4444;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--error-600);
 }
 
 .points-normal {
-  font-size: 18px;
-  font-weight: 700;
-  color: #10b981;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--success-600);
 }
 
 @media (max-width: 768px) {
-  .points-header {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 12px;
+  .page-container {
+    padding: var(--spacing-lg);
+  }
+
+  .page-header {
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 
   .points-summary {
-    padding: 16px;
+    margin-top: var(--spacing-lg);
   }
 
-  .summary-card {
-    padding: 16px;
+  .points-stats {
+    padding: var(--spacing-lg);
     flex-wrap: wrap;
-    gap: 16px;
+    gap: var(--spacing-lg);
   }
 
-  .summary-item {
+  .points-stat-item {
     flex: 1;
     min-width: 80px;
   }
 
-  .summary-divider {
+  .points-divider {
     display: none;
   }
 
-  .summary-value {
-    font-size: 28px;
+  .points-value {
+    font-size: var(--font-size-4xl);
   }
 
   .points-tabs {
-    padding: 16px;
+    margin-top: var(--spacing-lg);
+  }
+
+  :deep(.tabs-custom .el-tabs__item) {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
   }
 
   .exchange-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: var(--spacing-lg);
   }
 
   .goods-image {
@@ -685,12 +643,12 @@ onMounted(() => {
   }
 
   .goods-info {
-    padding: 12px;
+    padding: var(--spacing-md);
   }
 
   .goods-footer {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
     align-items: flex-start;
   }
 
@@ -698,6 +656,20 @@ onMounted(() => {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+
+  .history-item {
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
+  }
+
+  .history-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .history-points {
+    font-size: var(--font-size-xl);
   }
 }
 </style>

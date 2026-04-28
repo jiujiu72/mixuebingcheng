@@ -1,7 +1,7 @@
 <template>
-  <div class="user-address-container">
-    <header class="address-header">
-      <div class="header-left">
+  <div class="page-container">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
@@ -19,7 +19,7 @@
         <div
           v-for="address in addresses"
           :key="address.id"
-          class="address-card"
+          class="card address-card"
           :class="{ 'is-default': address.isDefault === 1 }"
         >
           <div class="address-content">
@@ -28,7 +28,7 @@
                 <span class="name">{{ address.name }}</span>
                 <span class="phone">{{ address.phone }}</span>
               </div>
-              <el-tag v-if="address.isDefault === 1" type="danger" size="small">默认地址</el-tag>
+              <span v-if="address.isDefault === 1" class="tag tag-primary">默认地址</span>
             </div>
             <div class="address-detail">
               <span class="address-location">
@@ -44,7 +44,7 @@
             <el-button type="primary" text size="small" @click="handleEdit(address)">
               编辑
             </el-button>
-            <el-button type="danger" text size="small" @click="handleDelete(address)">
+            <el-button text size="small" style="color: var(--error-600)" @click="handleDelete(address)">
               删除
             </el-button>
           </div>
@@ -52,10 +52,11 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-icon">
-          <el-icon :size="80"><Location /></el-icon>
+        <div class="empty-state-icon">
+          <el-icon :size="48"><Location /></el-icon>
         </div>
-        <p class="empty-text">暂无收货地址</p>
+        <p class="empty-state-title">暂无收货地址</p>
+        <p class="empty-state-text">添加地址后可更快完成下单</p>
         <el-button type="primary" @click="handleAdd">
           <el-icon><Plus /></el-icon>
           添加地址
@@ -343,165 +344,126 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
-.user-address-container {
+.page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
   min-height: 100vh;
-  background: #f5f7fa;
-  display: flex;
-  flex-direction: column;
-}
-
-.address-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
 }
 
 .address-main {
-  flex: 1;
-  padding: 20px;
+  margin-top: var(--spacing-xl);
 }
 
 .address-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
   max-width: 800px;
   margin: 0 auto;
 }
 
 .address-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
-}
-
-.address-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  padding: var(--spacing-lg);
+  transition: all var(--transition-normal);
 }
 
 .address-card.is-default {
-  border-color: #f56c6c;
-  background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%);
+  border-color: var(--primary-300);
+  background: var(--primary-50);
+}
+
+.address-card:hover {
+  border-color: var(--primary-200);
+  box-shadow: var(--shadow-md);
 }
 
 .address-content {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .address-header-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .address-person {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: var(--spacing-md);
 }
 
 .name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 .phone {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .address-detail {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .address-location {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .address-street {
-  font-size: 15px;
-  color: #334155;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: var(--line-height-normal);
 }
 
 .address-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #64748b;
-  margin: 0 0 20px 0;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-primary);
 }
 
 .switch-tip {
-  margin-left: 12px;
-  font-size: 13px;
-  color: #94a3b8;
+  margin-left: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 768px) {
-  .address-header {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 12px;
+  .page-container {
+    padding: var(--spacing-lg);
   }
-  
+
+  .page-header {
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
   .address-main {
-    padding: 16px;
+    margin-top: var(--spacing-lg);
   }
-  
+
   .address-card {
-    padding: 16px;
+    padding: var(--spacing-md);
   }
-  
+
+  .address-header-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
   .address-actions {
     flex-wrap: wrap;
+    gap: var(--spacing-xs);
   }
 }
 </style>
