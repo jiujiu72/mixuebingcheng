@@ -14,7 +14,7 @@
       <div class="member-day-banner" :class="{ 'is-active': isTodayMemberDay }">
         <div class="banner-content">
           <div class="banner-icon">
-            <el-icon><CrownFilled /></el-icon>
+            <el-icon><Medal /></el-icon>
           </div>
           <div class="banner-text">
             <div class="banner-title">
@@ -42,7 +42,7 @@
         <div class="rules-grid">
           <div class="rule-card">
             <div class="rule-icon">
-              <el-icon><Discount /></el-icon>
+              <el-icon><Ticket /></el-icon>
             </div>
             <div class="rule-info">
               <h3 class="rule-title">全场折扣</h3>
@@ -69,7 +69,7 @@
           </div>
         </div>
         <div class="schedule-info">
-          <el-icon><Calendar /></el-icon>
+          <el-icon><Clock /></el-icon>
           <span>会员日时间：{{ memberDayRulesInfo.weeklyDayName }}（每周）、{{ memberDayRulesInfo.monthlyDaysStr }}日（每月）</span>
         </div>
       </div>
@@ -198,15 +198,14 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   ArrowLeft,
-  CrownFilled,
-  Discount,
   Star,
   Wallet,
-  Calendar,
   Box,
   Lock,
   Medal,
-  Check
+  Check,
+  Ticket,
+  Clock
 } from '@element-plus/icons-vue'
 import {
   isTodayMemberDay as checkIsTodayMemberDay,
