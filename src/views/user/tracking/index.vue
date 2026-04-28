@@ -1,7 +1,7 @@
 <template>
   <div class="tracking-container">
-    <header class="tracking-header">
-      <div class="header-left">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
@@ -14,16 +14,16 @@
       </el-button>
     </header>
 
-    <main class="tracking-main" v-loading="loading">
+    <main class="page-container tracking-main" v-loading="loading">
       <div v-if="order" class="tracking-content">
-        <div class="delivery-status-card">
+        <div class="card delivery-status-card">
           <div class="status-header">
             <div class="status-icon">
-              <el-icon :size="48" v-if="order.status === 1"><Clock /></el-icon>
-              <el-icon :size="48" v-else-if="order.status === 2"><Checked /></el-icon>
-              <el-icon :size="48" v-else-if="order.status === 3"><Van /></el-icon>
-              <el-icon :size="48" v-else-if="order.status === 4"><CircleCheck /></el-icon>
-              <el-icon :size="48" v-else><Close /></el-icon>
+              <el-icon :size="36" v-if="order.status === 1"><Clock /></el-icon>
+              <el-icon :size="36" v-else-if="order.status === 2"><Checked /></el-icon>
+              <el-icon :size="36" v-else-if="order.status === 3"><Van /></el-icon>
+              <el-icon :size="36" v-else-if="order.status === 4"><CircleCheck /></el-icon>
+              <el-icon :size="36" v-else><Close /></el-icon>
             </div>
             <div class="status-info">
               <h2 class="status-title">{{ currentStatusText }}</h2>
@@ -38,12 +38,12 @@
           
           <div v-if="deliveryMan" class="delivery-man-info">
             <div class="rider-avatar">
-              <el-icon :size="40"><User /></el-icon>
+              <el-icon :size="28"><User /></el-icon>
             </div>
             <div class="rider-info">
               <div class="rider-name">
                 <span>{{ deliveryMan.name }}</span>
-                <el-rate :model-value="deliveryMan.rating" disabled show-score text-color="#ff9900" />
+                <el-rate :model-value="deliveryMan.rating" disabled show-score text-color="var(--warning-500)" />
               </div>
               <div class="rider-stats">
                 <span>已完成 {{ deliveryMan.orderCount }} 单</span>
@@ -60,8 +60,8 @@
           </div>
         </div>
 
-        <div class="tracking-steps-card">
-          <h3 class="card-title">物流状态</h3>
+        <div class="card tracking-steps-card">
+          <h3 class="section-title" style="margin-bottom: var(--spacing-lg);">物流状态</h3>
           <el-timeline>
             <el-timeline-item
               v-for="(log, index) in trackingLogs"
@@ -78,8 +78,8 @@
           </el-timeline>
         </div>
 
-        <div class="order-info-card">
-          <h3 class="card-title">订单信息</h3>
+        <div class="card order-info-card">
+          <h3 class="section-title" style="margin-bottom: var(--spacing-lg);">订单信息</h3>
           <div class="info-row">
             <span class="label">配送地址</span>
             <span class="value">{{ order.address }}</span>
@@ -98,8 +98,8 @@
           </div>
         </div>
 
-        <div class="order-items-card">
-          <h3 class="card-title">订单商品</h3>
+        <div class="card order-items-card">
+          <h3 class="section-title" style="margin-bottom: var(--spacing-lg);">订单商品</h3>
           <div class="items-list">
             <div v-for="(item, index) in order.items" :key="index" class="item-row">
               <span class="item-name">{{ item.name }}</span>
@@ -107,6 +107,7 @@
               <span class="item-price">¥{{ item.price * item.quantity }}</span>
             </div>
           </div>
+          <div class="divider"></div>
           <div class="price-summary">
             <div class="summary-row">
               <span>商品总价</span>
@@ -134,8 +135,8 @@
       </div>
 
       <div v-else class="empty-state">
-        <el-icon :size="64"><Document /></el-icon>
-        <p>订单不存在</p>
+        <el-icon :size="48" class="empty-state-icon"><Document /></el-icon>
+        <p class="empty-state-title">订单不存在</p>
         <el-button type="primary" @click="goToOrders">查看我的订单</el-button>
       </div>
     </main>
@@ -144,7 +145,7 @@
       <div class="contact-content">
         <div class="contact-rider-info">
           <div class="rider-avatar">
-            <el-icon :size="48"><User /></el-icon>
+            <el-icon :size="32"><User /></el-icon>
           </div>
           <div class="rider-details">
             <h4>{{ deliveryMan?.name }}</h4>
@@ -169,7 +170,7 @@
         <div
           v-for="notification in notifications"
           :key="notification.id"
-          class="notification-item"
+          class="card notification-item"
           :class="{ 'is-unread': !notification.isRead }"
         >
           <div class="notification-icon">
@@ -183,7 +184,7 @@
           <div v-if="!notification.isRead" class="unread-dot"></div>
         </div>
         <div v-if="notifications.length === 0" class="empty-notifications">
-          <el-icon :size="48"><Bell /></el-icon>
+          <el-icon :size="48" class="empty-state-icon"><Bell /></el-icon>
           <p>暂无消息通知</p>
         </div>
       </div>
@@ -361,39 +362,13 @@ onUnmounted(() => {
 <style scoped>
 .tracking-container {
   min-height: 100vh;
-  background: #f5f7fa;
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
-.tracking-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-
 .tracking-main {
   flex: 1;
-  padding: 20px;
   max-width: 800px;
   margin: 0 auto;
   width: 100%;
@@ -402,28 +377,28 @@ onUnmounted(() => {
 .tracking-content {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
 .delivery-status-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
-  padding: 24px;
+  padding: var(--spacing-xl);
+  background: linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+  border: none;
   color: white;
 }
 
 .status-header {
   display: flex;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .status-icon {
-  width: 80px;
-  height: 80px;
+  width: 64px;
+  height: 64px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -434,38 +409,40 @@ onUnmounted(() => {
 }
 
 .status-title {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-sm) 0;
+  color: white;
 }
 
 .status-desc {
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   opacity: 0.9;
   margin: 0;
+  color: white;
 }
 
 .countdown {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
   background: rgba(255, 255, 255, 0.2);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
 }
 
 .delivery-man-info {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding-top: 20px;
+  gap: var(--spacing-lg);
+  padding-top: var(--spacing-xl);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .rider-avatar {
-  width: 60px;
-  height: 60px;
+  width: 48px;
+  height: 48px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -478,61 +455,49 @@ onUnmounted(() => {
 .rider-name {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--spacing-xs);
 }
 
 .rider-stats {
-  font-size: 13px;
+  font-size: var(--font-size-xs);
   opacity: 0.9;
 }
 
 .rider-actions {
   display: flex;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .tracking-steps-card,
 .order-info-card,
 .order-items-card {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
-
-.card-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--spacing-xl);
 }
 
 .tracking-item {
-  padding: 8px 0;
+  padding: var(--spacing-sm) 0;
 }
 
 .tracking-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 4px 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .tracking-desc {
-  font-size: 13px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .info-row {
   display: flex;
-  padding: 12px 0;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .info-row:last-child {
@@ -541,103 +506,86 @@ onUnmounted(() => {
 
 .info-row .label {
   width: 80px;
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .info-row .value {
   flex: 1;
-  font-size: 14px;
-  color: #334155;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
 }
 
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--spacing-md);
 }
 
 .item-row {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #f1f5f9;
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--border-secondary);
 }
 
 .item-name {
   flex: 1;
-  font-size: 14px;
-  color: #334155;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
 }
 
 .item-quantity {
   width: 60px;
   text-align: center;
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .item-price {
   width: 80px;
   text-align: right;
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
 }
 
 .price-summary {
-  padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  padding-top: var(--spacing-lg);
 }
 
 .summary-row {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 12px;
-  font-size: 14px;
-  color: #64748b;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
 }
 
 .summary-row.total {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #f1f5f9;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-primary);
 }
 
 .total-price {
-  color: #f56c6c;
-  font-size: 20px;
+  color: var(--primary-600);
+  font-size: var(--font-size-xl);
 }
 
 .action-buttons {
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-lg);
 }
 
 .action-buttons .el-button {
   flex: 1;
-  height: 48px;
-  border-radius: 12px;
-  font-size: 16px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-  color: #94a3b8;
-}
-
-.empty-state p {
-  margin: 20px 0;
-  font-size: 16px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
 }
 
 .contact-content {
@@ -647,51 +595,49 @@ onUnmounted(() => {
 .contact-rider-info {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #f1f5f9;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border-primary);
 }
 
 .rider-details h4 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: var(--font-size-base);
 }
 
 .rider-details p {
   margin: 0;
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .notification-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .notification-item {
   display: flex;
-  gap: 12px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 12px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
   position: relative;
 }
 
 .notification-item.is-unread {
-  background: linear-gradient(135deg, #fef3c7 0%, #fff 100%);
+  border-left: 3px solid var(--primary-500);
 }
 
 .notification-icon {
   width: 40px;
   height: 40px;
-  background: #e0e7ff;
-  border-radius: 50%;
+  background: var(--primary-50);
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6366f1;
+  color: var(--primary-600);
 }
 
 .notification-content {
@@ -699,31 +645,31 @@ onUnmounted(() => {
 }
 
 .notification-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
-  margin: 0 0 4px 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .notification-text {
-  font-size: 13px;
-  color: #64748b;
-  margin: 0 0 8px 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-xs) 0;
 }
 
 .notification-time {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .unread-dot {
   width: 8px;
   height: 8px;
-  background: #f56c6c;
-  border-radius: 50%;
+  background: var(--primary-500);
+  border-radius: var(--radius-full);
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
 }
 
 .empty-notifications {
@@ -731,22 +677,18 @@ onUnmounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: #94a3b8;
+  padding: var(--spacing-4xl) var(--spacing-xl);
+  color: var(--text-tertiary);
 }
 
 .empty-notifications p {
-  margin-top: 16px;
-  font-size: 14px;
+  margin-top: var(--spacing-lg);
+  font-size: var(--font-size-base);
 }
 
 @media (max-width: 768px) {
-  .tracking-header {
-    padding: 12px 16px;
-  }
-  
   .tracking-main {
-    padding: 16px;
+    padding: var(--spacing-lg);
   }
   
   .status-header {

@@ -1,21 +1,21 @@
 <template>
-  <div class="user-orders-container">
-    <header class="orders-header">
-      <div class="header-left">
+  <div class="page-container">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
         </el-button>
         <h1 class="page-title">我的订单</h1>
       </div>
-      <el-button type="primary" text @click="goToHome">
+      <el-button type="primary" @click="goToHome">
         <el-icon><Plus /></el-icon>
         去点餐
       </el-button>
     </header>
 
-    <div class="order-tabs">
-      <el-tabs v-model="activeTab" type="card" @tab-change="handleTabChange">
+    <div class="orders-content">
+      <el-tabs v-model="activeTab" class="orders-tabs" @tab-change="handleTabChange">
         <el-tab-pane label="全部" name="all">
           <div class="orders-list">
             <OrderCard
@@ -32,13 +32,13 @@
               @reorder="handleReorder"
             />
 
-            <div v-if="filteredOrders.length === 0" class="empty-orders">
-              <div class="empty-icon">
-                <el-icon :size="80"><Document /></el-icon>
+            <div v-if="filteredOrders.length === 0" class="empty-state">
+              <div class="empty-state-icon">
+                <el-icon :size="48"><Document /></el-icon>
               </div>
-              <p class="empty-text">暂无订单</p>
-              <p class="empty-hint">快去添加美食到购物车吧~</p>
-              <el-button type="primary" @click="goToHome">
+              <p class="empty-state-title">暂无订单</p>
+              <p class="empty-state-text">快去添加美食到购物车吧</p>
+              <el-button type="primary" @click="goToHome" style="margin-top: 16px">
                 去点餐
               </el-button>
             </div>
@@ -61,7 +61,7 @@
               @reorder="handleReorder"
             />
             <div v-if="pendingPaymentOrders.length === 0" class="empty-status">
-              <p>暂无待付款订单</p>
+              <p class="empty-state-text">暂无待付款订单</p>
             </div>
           </div>
         </el-tab-pane>
@@ -82,7 +82,7 @@
               @reorder="handleReorder"
             />
             <div v-if="pendingDeliveryOrders.length === 0" class="empty-status">
-              <p>暂无待发货订单</p>
+              <p class="empty-state-text">暂无待发货订单</p>
             </div>
           </div>
         </el-tab-pane>
@@ -103,7 +103,7 @@
               @reorder="handleReorder"
             />
             <div v-if="deliveringOrders.length === 0" class="empty-status">
-              <p>暂无待收货订单</p>
+              <p class="empty-state-text">暂无待收货订单</p>
             </div>
           </div>
         </el-tab-pane>
@@ -124,7 +124,7 @@
               @reorder="handleReorder"
             />
             <div v-if="completedOrders.length === 0" class="empty-status">
-              <p>暂无已完成订单</p>
+              <p class="empty-state-text">暂无已完成订单</p>
             </div>
           </div>
         </el-tab-pane>
@@ -134,7 +134,7 @@
     <el-dialog v-model="confirmDialogVisible" title="确认收货" width="420px" :close-on-click-modal="false">
       <div class="confirm-dialog-content">
         <div class="confirm-icon">
-          <el-icon :size="48" color="#667eea"><CircleCheckFilled /></el-icon>
+          <el-icon :size="48" :color="var(--primary-600)"><CircleCheckFilled /></el-icon>
         </div>
         <p class="confirm-text">确认已收到订单中的所有商品吗？</p>
         <div class="confirm-order-info">
@@ -189,6 +189,17 @@ const completedOrders = computed(() =>
   userOrders.value.filter(o => o.status === 4 || o.status === 5)
 )
 
+const getStatusBadgeClass = (type) => {
+  const classMap = {
+    success: 'badge-success',
+    warning: 'badge-warning',
+    error: 'badge-error',
+    info: 'badge-info',
+    primary: 'badge-primary'
+  }
+  return classMap[type] || 'badge-neutral'
+}
+
 const OrderCard = defineComponent({
   name: 'OrderCard',
   props: {
@@ -216,10 +227,10 @@ const OrderCard = defineComponent({
     const handleReorder = () => emit('reorder', props.order)
 
     return () => h('div', { 
-      class: 'order-card-wrapper',
+      class: 'card card-clickable order-card',
       onClick: handleViewOrder
     }, [
-      h('div', { class: 'order-header' }, [
+      h('div', { class: 'order-card-header' }, [
         h('div', { class: 'order-info-top' }, [
           h('span', { class: 'order-id' }, [
             h('span', { class: 'label' }, '订单号：'),
@@ -230,27 +241,22 @@ const OrderCard = defineComponent({
             h('span', props.order.orderTime)
           ])
         ]),
-        h('el-tag', {
-          type: statusInfo.value.type,
-          size: 'default',
-          effect: 'dark'
+        h('span', {
+          class: ['badge', getStatusBadgeClass(statusInfo.value.type)]
         }, statusInfo.value.label)
       ]),
 
+      h('div', { class: 'divider-dashed', style: { margin: 0 } }),
+
       h('div', { class: 'order-items-section', onClick: (e) => e.stopPropagation() }, [
-        h('div', { class: 'items-header' }, [
-          h('span', { class: 'section-title' }, '商品信息'),
-          h('span', { class: 'item-count' }, `共${props.order.items.length}件商品`)
-        ]),
         h('div', { class: 'items-list' }, 
           props.order.items.map((item, index) => 
             h('div', { 
               class: 'order-item', 
-              key: index,
-              style: { animationDelay: `${index * 0.05}s` }
+              key: index
             }, [
               h('div', { class: 'item-placeholder' }, [
-                h('el-icon', { size: 24, color: '#cbd5e1' }, h(ShoppingCart))
+                h('el-icon', { size: 20, color: 'var(--neutral-400)' }, h(ShoppingCart))
               ]),
               h('div', { class: 'item-info' }, [
                 h('div', { class: 'item-name' }, item.name),
@@ -266,47 +272,33 @@ const OrderCard = defineComponent({
         )
       ]),
 
-      h('div', { class: 'order-delivery-section', onClick: (e) => e.stopPropagation() }, [
+      props.order.address ? h('div', { class: 'order-delivery-section', onClick: (e) => e.stopPropagation() }, [
+        h('div', { class: 'divider-dashed', style: { margin: '0 -16px 12px' } }),
         h('div', { class: 'delivery-header' }, [
-          h('el-icon', { size: 16, color: '#667eea' }, h(DeliveryTruck)),
+          h('el-icon', { size: 14, color: 'var(--primary-600)' }, h(DeliveryTruck)),
           h('span', { class: 'section-title' }, '配送信息')
         ]),
         h('div', { class: 'delivery-info' }, [
-          h('div', { class: 'delivery-row' }, [
-            h('el-icon', { size: 14, color: '#94a3b8' }, h(Location)),
-            h('div', { class: 'delivery-content' }, [
-              h('div', { class: 'receiver-info' }, [
-                h('span', { class: 'name' }, props.order.userName),
-                h('span', { class: 'phone' }, props.order.phone)
-              ]),
-              h('div', { class: 'address-detail' }, props.order.address)
-            ])
+          h('div', { class: 'receiver-info' }, [
+            h('span', { class: 'name' }, props.order.userName),
+            h('span', { class: 'phone' }, props.order.phone)
           ]),
-          props.order.remark ? h('div', { class: 'delivery-row remark-row' }, [
+          h('div', { class: 'address-detail' }, props.order.address),
+          props.order.remark ? h('div', { class: 'remark-row' }, [
             h('span', { class: 'remark-label' }, '备注：'),
             h('span', { class: 'remark-content' }, props.order.remark)
           ]) : null
         ])
-      ]),
+      ]) : null,
 
-      h('div', { class: 'order-price-section', onClick: (e) => e.stopPropagation() }, [
-        h('div', { class: 'price-row' }, [
-          h('span', { class: 'price-label' }, '商品金额'),
-          h('span', { class: 'price-value' }, `¥${itemsAmount.value.toFixed(2)}`)
-        ]),
-        discountAmount.value > 0 ? h('div', { class: 'price-row discount' }, [
-          h('span', { class: 'price-label' }, '优惠金额'),
-          h('span', { class: 'price-value discount-value' }, `-¥${discountAmount.value.toFixed(2)}`)
-        ]) : null,
-        h('div', { class: 'price-row total-row' }, [
-          h('span', { class: 'price-label' }, '实付金额'),
+      h('div', { class: 'order-footer', onClick: (e) => e.stopPropagation() }, [
+        h('div', { class: 'price-summary' }, [
+          h('span', { class: 'price-label' }, '共'),
+          h('span', { class: 'item-count' }, `${props.order.items.length}`),
+          h('span', { class: 'price-label' }, '件商品，实付'),
           h('span', { class: 'total-price' }, `¥${props.order.actualPrice}`)
-        ])
-      ]),
-
-      h('div', { class: 'order-actions', onClick: (e) => e.stopPropagation() }, [
-        h('div', { class: 'actions-left' }, []),
-        h('div', { class: 'actions-right' }, [
+        ]),
+        h('div', { class: 'order-actions' }, [
           props.order.status === 3 ? h('el-button', {
             type: 'primary',
             size: 'small',
@@ -314,8 +306,6 @@ const OrderCard = defineComponent({
           }, '确认收货') : null,
           
           (props.order.status === 2 || props.order.status === 3) ? h('el-button', {
-            type: 'primary',
-            plain: true,
             size: 'small',
             onClick: handleGoToTracking
           }, '查看配送') : null,
@@ -324,30 +314,17 @@ const OrderCard = defineComponent({
             type: 'warning',
             size: 'small',
             onClick: handleGoToReview
-          }, [
-            h('el-icon', {}, h(ChatDotRound)),
-            ' 去评价'
-          ]) : null,
+          }, '去评价') : null,
           
           (props.order.status === 4 && props.isReviewed) ? h('el-button', {
-            type: 'info',
-            plain: true,
             size: 'small',
             onClick: handleViewReview
-          }, [
-            h('el-icon', {}, h(ChatDotRound)),
-            ' 查看评价'
-          ]) : null,
+          }, '查看评价') : null,
           
           (props.order.status === 4 || props.order.status === 5) ? h('el-button', {
-            type: 'success',
-            plain: true,
             size: 'small',
             onClick: handleReorder
-          }, [
-            h('el-icon', {}, h(Plus)),
-            ' 再来一单'
-          ]) : null,
+          }, '再来一单') : null,
           
           props.order.status === 1 ? h('el-button', {
             type: 'primary',
@@ -429,160 +406,114 @@ const handleReorder = (order) => {
 </script>
 
 <style scoped>
-.user-orders-container {
-  min-height: 100vh;
-  background: #f5f7fa;
-  display: flex;
-  flex-direction: column;
-}
-
-.orders-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-
-.order-tabs {
-  flex: 1;
-  padding: 20px;
+.page-container {
   max-width: 1000px;
   margin: 0 auto;
-  width: 100%;
+  padding: var(--spacing-xl);
+  min-height: 100vh;
 }
 
-:deep(.el-tabs__nav-wrap) {
-  margin-bottom: 20px;
+.orders-content {
+  margin-top: var(--spacing-xl);
 }
 
-:deep(.el-tabs__item.is-active) {
-  color: #667eea;
+:deep(.orders-tabs .el-tabs__nav-wrap) {
+  margin-bottom: var(--spacing-xl);
 }
 
-:deep(.el-tabs__active-bar) {
-  background-color: #667eea;
+:deep(.orders-tabs .el-tabs__item) {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  height: 40px;
+  line-height: 40px;
+}
+
+:deep(.orders-tabs .el-tabs__item.is-active) {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-medium);
+}
+
+:deep(.orders-tabs .el-tabs__active-bar) {
+  background-color: var(--primary-600);
+  height: 2px;
+}
+
+:deep(.orders-tabs .el-tabs__nav-wrap::after) {
+  background-color: var(--border-primary);
+  height: 1px;
 }
 
 .orders-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--spacing-xl);
 }
 
-.order-card-wrapper {
-  background: white;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+.order-card {
+  padding: var(--spacing-lg);
   cursor: pointer;
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
 }
 
-.order-card-wrapper:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-  border-color: #e0e7ff;
-}
-
-.order-header {
+.order-card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-bottom: 1px solid #f1f5f9;
+  align-items: flex-start;
+  margin-bottom: var(--spacing-lg);
 }
 
 .order-info-top {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-xs);
 }
 
 .order-id {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .order-id .label {
-  color: #94a3b8;
+  color: var(--text-tertiary);
 }
 
 .order-time {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
 .order-items-section {
-  padding: 16px 20px;
-  border-bottom: 1px dashed #e2e8f0;
-}
-
-.items-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.item-count {
-  font-size: 13px;
-  color: #94a3b8;
+  padding: 0;
 }
 
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
 }
 
 .order-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 12px;
-  transition: all 0.2s ease;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
 }
 
 .order-item:hover {
-  background: #f1f5f9;
+  background: var(--slate-100);
 }
 
 .item-placeholder {
-  width: 56px;
-  height: 56px;
-  background: #e2e8f0;
-  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  background: var(--slate-100);
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -595,10 +526,10 @@ const handleReorder = (order) => {
 }
 
 .item-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1e293b;
-  margin-bottom: 6px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-xs);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -608,271 +539,205 @@ const handleReorder = (order) => {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .item-price .price {
-  font-weight: 600;
-  color: #667eea;
+  font-weight: var(--font-weight-medium);
+  color: var(--primary-600);
 }
 
 .item-price .multiply {
-  color: #94a3b8;
-}
-
-.item-price .quantity {
-  color: #64748b;
+  color: var(--neutral-400);
 }
 
 .item-subtotal {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
   flex-shrink: 0;
 }
 
 .order-delivery-section {
-  padding: 16px 20px;
-  border-bottom: 1px dashed #e2e8f0;
+  margin-top: var(--spacing-md);
 }
 
 .delivery-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+}
+
+.delivery-header .section-title {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  margin: 0;
 }
 
 .delivery-info {
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 12px;
-}
-
-.delivery-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-}
-
-.delivery-row + .delivery-row {
-  margin-top: 8px;
-}
-
-.delivery-content {
-  flex: 1;
+  padding: var(--spacing-md);
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
 }
 
 .receiver-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xs);
 }
 
 .receiver-info .name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
 }
 
 .receiver-info .phone {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .address-detail {
-  font-size: 13px;
-  color: #64748b;
-  line-height: 1.6;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
 }
 
 .remark-row {
-  padding-top: 8px;
-  border-top: 1px solid #e2e8f0;
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--border-primary);
 }
 
 .remark-label {
-  font-size: 13px;
-  color: #94a3b8;
-  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .remark-content {
-  font-size: 13px;
-  color: #64748b;
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
 }
 
-.order-price-section {
-  padding: 16px 20px;
-  background: #fafbfc;
-  border-bottom: 1px solid #f1f5f9;
-}
-
-.price-row {
+.order-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border-primary);
 }
 
-.price-row + .price-row {
-  margin-top: 8px;
+.price-summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-sm);
 }
 
-.price-row .price-label {
-  color: #64748b;
+.price-summary .price-label {
+  color: var(--text-secondary);
 }
 
-.price-row .price-value {
-  color: #475569;
-  font-weight: 500;
+.price-summary .item-count {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
-.price-row.discount {
-  background: #fef2f2;
-  padding: 8px 12px;
-  border-radius: 8px;
-  margin: 8px 0;
-}
-
-.price-row.discount .price-label {
-  color: #ef4444;
-}
-
-.price-row.discount .discount-value {
-  color: #ef4444;
-  font-weight: 600;
-}
-
-.price-row.total-row {
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
-  margin-top: 12px;
-}
-
-.price-row.total-row .price-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.total-price {
-  font-size: 20px;
-  font-weight: 700;
-  color: #667eea;
+.price-summary .total-price {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
+  margin-left: var(--spacing-xs);
 }
 
 .order-actions {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: white;
-}
-
-.actions-right {
-  display: flex;
-  gap: 10px;
+  gap: var(--spacing-sm);
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
-.empty-orders {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.empty-orders .empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-}
-
-.empty-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #475569;
-  margin: 0 0 8px 0;
-}
-
-.empty-hint {
-  font-size: 14px;
-  color: #94a3b8;
-  margin: 0 0 20px 0;
+:deep(.order-actions .el-button) {
+  padding: 4px 12px;
+  font-size: var(--font-size-sm);
+  border-radius: var(--radius-md);
 }
 
 .empty-status {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  font-size: 15px;
-  color: #94a3b8;
+  padding: var(--spacing-4xl);
 }
 
 .confirm-dialog-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: var(--spacing-lg);
 }
 
 .confirm-icon {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .confirm-text {
-  font-size: 15px;
-  color: #475569;
-  margin: 0 0 12px 0;
+  font-size: var(--font-size-lg);
+  color: var(--text-primary);
+  margin: 0 0 var(--spacing-lg);
 }
 
 .confirm-order-info {
   display: flex;
-  gap: 20px;
-  padding: 12px 24px;
-  background: #f8fafc;
-  border-radius: 12px;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
 }
 
 .confirm-order-info .order-id {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .confirm-order-info .order-price {
-  font-size: 18px;
-  font-weight: 700;
-  color: #667eea;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
 }
 
 @media (max-width: 768px) {
-  .orders-header {
-    padding: 12px 16px;
+  .page-container {
+    padding: var(--spacing-lg);
   }
 
-  .order-tabs {
-    padding: 16px;
+  .page-header {
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .orders-content {
+    margin-top: var(--spacing-lg);
   }
 
   .orders-list {
-    gap: 16px;
+    gap: var(--spacing-lg);
   }
 
-  .order-card-wrapper {
-    border-radius: 16px;
+  .order-card {
+    padding: var(--spacing-md);
   }
 
-  .order-header {
-    padding: 12px 16px;
+  .order-card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
   }
 
   .order-info-top {
@@ -882,42 +747,39 @@ const handleReorder = (order) => {
     align-items: center;
   }
 
-  .order-items-section,
-  .order-delivery-section,
-  .order-price-section {
-    padding: 12px 16px;
-  }
-
   .order-item {
-    padding: 10px;
-    gap: 10px;
+    padding: var(--spacing-xs);
+    gap: var(--spacing-sm);
   }
 
   .item-placeholder {
-    width: 48px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
 
-  .order-actions {
-    padding: 12px 16px;
+  .order-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
   }
 
-  .actions-right {
+  .price-summary {
     width: 100%;
     justify-content: space-between;
   }
 
-  .actions-right .el-button {
-    flex: 1;
-    min-width: 0;
+  .order-actions {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .order-time {
     display: none;
   }
 
-  .total-price {
-    font-size: 18px;
+  :deep(.orders-tabs .el-tabs__item) {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
   }
 }
 </style>

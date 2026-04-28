@@ -1,7 +1,7 @@
 <template>
-  <div class="user-reviews-container">
-    <header class="reviews-header">
-      <div class="header-left">
+  <div class="page-container">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
@@ -10,20 +10,22 @@
       </div>
     </header>
 
-    <div class="reviews-tabs">
-      <el-tabs v-model="activeTab" type="card">
+    <div class="reviews-content">
+      <el-tabs v-model="activeTab" class="reviews-tabs">
         <el-tab-pane label="待评价" name="pending">
           <div class="pending-section">
             <div class="pending-list">
               <div
                 v-for="order in pendingOrders"
                 :key="order.id"
-                class="order-card"
+                class="card card-clickable pending-card"
               >
-                <div class="order-header">
+                <div class="card-header">
                   <span class="order-id">{{ order.id }}</span>
-                  <el-tag type="warning" size="small">待评价</el-tag>
+                  <span class="badge badge-warning">待评价</span>
                 </div>
+
+                <div class="divider-dashed" style="margin: var(--spacing-md) -16px;"></div>
 
                 <div class="order-items">
                   <div
@@ -37,6 +39,8 @@
                   </div>
                 </div>
 
+                <div class="divider" style="margin: var(--spacing-md) 0;"></div>
+
                 <div class="order-footer">
                   <div class="order-info">
                     <span class="order-time">下单时间：{{ order.orderTime }}</span>
@@ -49,10 +53,11 @@
               </div>
 
               <div v-if="pendingOrders.length === 0" class="empty-state">
-                <div class="empty-icon">
-                  <el-icon :size="80"><Document /></el-icon>
+                <div class="empty-state-icon">
+                  <el-icon :size="48"><Document /></el-icon>
                 </div>
-                <p class="empty-text">暂无可评价的订单</p>
+                <p class="empty-state-title">暂无可评价的订单</p>
+                <p class="empty-state-text">完成订单后即可进行评价</p>
               </div>
             </div>
           </div>
@@ -64,9 +69,9 @@
               <div
                 v-for="review in userReviews"
                 :key="review.id"
-                class="review-card"
+                class="card review-card"
               >
-                <div class="review-header">
+                <div class="card-header">
                   <div class="review-order">
                     <span class="order-id">订单号：{{ review.orderId }}</span>
                     <span class="review-time">{{ review.createTime }}</span>
@@ -76,10 +81,12 @@
                       v-model="review.rating" 
                       disabled 
                       :show-text="true"
-                      text-color="#ff6700"
+                      text-color="var(--warning-600)"
                     />
                   </div>
                 </div>
+
+                <div class="divider-dashed" style="margin: var(--spacing-md) -16px;"></div>
 
                 <div class="review-content">
                   <div class="rating-details">
@@ -89,7 +96,7 @@
                         v-model="review.foodRating" 
                         disabled 
                         :show-text="true"
-                        text-color="#ff6700"
+                        text-color="var(--warning-600)"
                       />
                     </div>
                     <div class="rating-item" v-if="review.deliveryManId">
@@ -98,7 +105,7 @@
                         v-model="review.deliveryRating" 
                         disabled 
                         :show-text="true"
-                        text-color="#ff6700"
+                        text-color="var(--warning-600)"
                       />
                     </div>
                   </div>
@@ -119,7 +126,7 @@
                   </div>
 
                   <div v-if="review.isAnonymous" class="anonymous-badge">
-                    <el-tag type="info" size="small">匿名评价</el-tag>
+                    <span class="tag tag-info">匿名评价</span>
                   </div>
                 </div>
 
@@ -133,10 +140,11 @@
               </div>
 
               <div v-if="userReviews.length === 0" class="empty-state">
-                <div class="empty-icon">
-                  <el-icon :size="80"><ChatDotRound /></el-icon>
+                <div class="empty-state-icon">
+                  <el-icon :size="48"><ChatDotRound /></el-icon>
                 </div>
-                <p class="empty-text">暂无已评价的订单</p>
+                <p class="empty-state-title">暂无已评价的订单</p>
+                <p class="empty-state-text">您的评价将会帮助其他用户做出选择</p>
               </div>
             </div>
           </div>
@@ -165,15 +173,15 @@
         </el-form-item>
 
         <el-form-item label="整体评分" prop="rating">
-          <el-rate v-model="reviewForm.rating" :show-text="true" text-color="#ff6700" />
+          <el-rate v-model="reviewForm.rating" :show-text="true" text-color="var(--warning-600)" />
         </el-form-item>
 
         <el-form-item label="商品评分" prop="foodRating">
-          <el-rate v-model="reviewForm.foodRating" :show-text="true" text-color="#ff6700" />
+          <el-rate v-model="reviewForm.foodRating" :show-text="true" text-color="var(--warning-600)" />
         </el-form-item>
 
         <el-form-item label="配送评分" prop="deliveryRating" v-if="currentOrder?.deliveryManId">
-          <el-rate v-model="reviewForm.deliveryRating" :show-text="true" text-color="#ff6700" />
+          <el-rate v-model="reviewForm.deliveryRating" :show-text="true" text-color="var(--warning-600)" />
         </el-form-item>
 
         <el-form-item label="评价内容" prop="content">
@@ -365,191 +373,147 @@ const previewImage = (image) => {
 </script>
 
 <style scoped>
-.user-reviews-container {
-  min-height: 100vh;
-  background: #f5f7fa;
-  display: flex;
-  flex-direction: column;
-}
-
-.reviews-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
-}
-
-.reviews-tabs {
-  flex: 1;
-  padding: 20px;
+.page-container {
   max-width: 1000px;
   margin: 0 auto;
-  width: 100%;
+  padding: var(--spacing-xl);
+  min-height: 100vh;
 }
 
-:deep(.el-tabs__nav-wrap) {
-  margin-bottom: 20px;
+.reviews-content {
+  margin-top: var(--spacing-xl);
+}
+
+:deep(.reviews-tabs .el-tabs__nav-wrap) {
+  margin-bottom: var(--spacing-xl);
+}
+
+:deep(.reviews-tabs .el-tabs__item) {
+  font-size: var(--font-size-base);
+  color: var(--text-secondary);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  height: 40px;
+  line-height: 40px;
+}
+
+:deep(.reviews-tabs .el-tabs__item.is-active) {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-medium);
+}
+
+:deep(.reviews-tabs .el-tabs__active-bar) {
+  background-color: var(--primary-600);
+  height: 2px;
+}
+
+:deep(.reviews-tabs .el-tabs__nav-wrap::after) {
+  background-color: var(--border-primary);
+  height: 1px;
 }
 
 .pending-section,
 .completed-section {
-  background: white;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
 }
 
 .pending-list,
 .reviews-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-lg);
 }
 
-.order-card {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 16px;
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
+.pending-card {
+  padding: var(--spacing-lg);
 }
 
-.order-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);
-}
-
-.order-header {
+.card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
 }
 
 .order-id {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .order-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--spacing-sm);
 }
 
 .order-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: white;
-  border-radius: 8px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
 }
 
 .order-item .item-name {
   flex: 1;
-  font-size: 14px;
-  color: #334155;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
 }
 
 .order-item .item-quantity {
-  font-size: 13px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .order-item .item-price {
-  font-size: 14px;
-  font-weight: 600;
-  color: #667eea;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-600);
 }
 
 .order-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
 }
 
 .order-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--spacing-xs);
 }
 
 .order-time {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .order-total {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .order-total .price {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ef4444;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
 }
 
 .review-card {
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 16px;
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
-}
-
-.review-card:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);
-}
-
-.review-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  padding: var(--spacing-lg);
 }
 
 .review-order {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-}
-
-.review-order .order-id {
-  font-size: 14px;
-  color: #64748b;
+  gap: var(--spacing-xs);
 }
 
 .review-time {
-  font-size: 13px;
-  color: #94a3b8;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .review-rating {
@@ -558,54 +522,54 @@ const previewImage = (image) => {
 }
 
 .review-content {
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .rating-details {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: var(--spacing-xl);
+  margin-bottom: var(--spacing-md);
 }
 
 .rating-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
 }
 
 .rating-label {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
 }
 
 .review-text {
-  font-size: 14px;
-  color: #334155;
-  line-height: 1.6;
-  margin-bottom: 12px;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-md);
 }
 
 .review-images {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
 }
 
 .review-image {
   width: 80px;
   height: 80px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   cursor: pointer;
-  border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
+  border: 1px solid var(--border-primary);
+  transition: all var(--transition-fast);
 }
 
 .review-image:hover {
-  border-color: #667eea;
-  transform: scale(1.05);
+  border-color: var(--primary-300);
+  transform: scale(1.02);
 }
 
 .review-image img {
@@ -615,85 +579,66 @@ const previewImage = (image) => {
 }
 
 .anonymous-badge {
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .review-reply {
-  background: #f0f4ff;
-  border-radius: 8px;
-  padding: 12px;
-  border-left: 4px solid #667eea;
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  border-left: 3px solid var(--primary-500);
+  margin-top: var(--spacing-md);
 }
 
 .reply-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .reply-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #667eea;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-600);
 }
 
 .reply-time {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
 }
 
 .reply-content {
-  font-size: 14px;
-  color: #334155;
-  line-height: 1.6;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #64748b;
-  margin: 0;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: var(--line-height-relaxed);
 }
 
 .review-order-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--spacing-xs);
   width: 100%;
 }
 
 .review-order-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  border-radius: 8px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--slate-50);
+  border-radius: var(--radius-md);
 }
 
 .review-order-item .item-name {
   flex: 1;
-  font-size: 14px;
-  color: #334155;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
 }
 
 .review-order-item .item-quantity {
-  font-size: 13px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 .image-uploader {
@@ -706,47 +651,56 @@ const previewImage = (image) => {
 }
 
 .switch-tip {
-  margin-left: 12px;
-  font-size: 13px;
-  color: #94a3b8;
+  margin-left: var(--spacing-sm);
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
 }
 
 @media (max-width: 768px) {
-  .reviews-header {
-    padding: 12px 16px;
-    flex-wrap: wrap;
-    gap: 12px;
+  .page-container {
+    padding: var(--spacing-lg);
   }
 
-  .reviews-tabs {
-    padding: 16px;
+  .page-header {
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 
-  .pending-section,
-  .completed-section {
-    padding: 16px;
+  .reviews-content {
+    margin-top: var(--spacing-lg);
   }
 
-  .order-card,
+  :deep(.reviews-tabs .el-tabs__item) {
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+
+  .pending-card,
   .review-card {
-    padding: 12px;
+    padding: var(--spacing-md);
   }
 
   .order-footer {
     flex-direction: column;
-    gap: 12px;
+    gap: var(--spacing-md);
     align-items: flex-start;
+  }
+
+  .order-info {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .rating-details {
     flex-direction: column;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 
-  .review-header {
+  .card-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
+    gap: var(--spacing-sm);
   }
 }
 </style>

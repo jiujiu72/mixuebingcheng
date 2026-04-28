@@ -1,7 +1,7 @@
 <template>
-  <div class="notifications-container">
-    <header class="notifications-header">
-      <div class="header-left">
+  <div class="page-container">
+    <header class="page-header">
+      <div class="page-header-left">
         <el-button text @click="goBack">
           <el-icon><ArrowLeft /></el-icon>
           返回
@@ -18,12 +18,12 @@
         <div
           v-for="notification in notifications"
           :key="notification.id"
-          class="notification-card"
+          class="card notification-card"
           :class="{ 'is-unread': !notification.isRead }"
           @click="handleRead(notification)"
         >
-          <div class="notification-icon">
-            <el-icon :size="24">
+          <div class="notification-icon" :class="notification.type">
+            <el-icon :size="20">
               <Bell v-if="notification.type === 'order'" />
               <ChatDotRound v-else-if="notification.type === 'message'" />
               <Warning v-else />
@@ -41,11 +41,11 @@
       </div>
 
       <div v-else class="empty-state">
-        <div class="empty-icon">
-          <el-icon :size="80"><Bell /></el-icon>
+        <div class="empty-state-icon">
+          <el-icon :size="48"><Bell /></el-icon>
         </div>
-        <p class="empty-text">暂无消息通知</p>
-        <p class="empty-desc">新消息会第一时间通知您</p>
+        <p class="empty-state-title">暂无消息通知</p>
+        <p class="empty-state-text">新消息会第一时间通知您</p>
       </div>
     </main>
   </div>
@@ -90,83 +90,66 @@ const markAllRead = () => {
 </script>
 
 <style scoped>
-.notifications-container {
+.page-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-xl);
   min-height: 100vh;
-  background: #f5f7fa;
-  display: flex;
-  flex-direction: column;
-}
-
-.notifications-header {
-  background: white;
-  padding: 16px 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.page-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1e293b;
-  margin: 0;
 }
 
 .notifications-main {
-  flex: 1;
-  padding: 20px;
+  margin-top: var(--spacing-xl);
 }
 
 .notifications-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--spacing-md);
   max-width: 800px;
   margin: 0 auto;
 }
 
 .notification-card {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
+  padding: var(--spacing-lg);
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-lg);
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   position: relative;
 }
 
 .notification-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary-200);
+  box-shadow: var(--shadow-md);
 }
 
 .notification-card.is-unread {
-  background: linear-gradient(135deg, #fef3c7 0%, #fff 100%);
-  border-left: 4px solid #f59e0b;
+  background: var(--slate-50);
+  border-left: 3px solid var(--primary-500);
 }
 
 .notification-icon {
-  width: 48px;
-  height: 48px;
-  background: #e0e7ff;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6366f1;
   flex-shrink: 0;
+}
+
+.notification-icon.order {
+  background: var(--primary-50);
+  color: var(--primary-600);
+}
+
+.notification-icon.message {
+  background: var(--success-50);
+  color: var(--success-600);
+}
+
+.notification-icon.system {
+  background: var(--warning-50);
+  color: var(--warning-600);
 }
 
 .notification-content {
@@ -178,28 +161,28 @@ const markAllRead = () => {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-xs);
 }
 
 .notification-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1e293b;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
   margin: 0;
 }
 
 .notification-time {
-  font-size: 12px;
-  color: #94a3b8;
+  font-size: var(--font-size-xs);
+  color: var(--text-tertiary);
   flex-shrink: 0;
-  margin-left: 12px;
+  margin-left: var(--spacing-md);
 }
 
 .notification-text {
-  font-size: 14px;
-  color: #64748b;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
   margin: 0;
-  line-height: 1.5;
+  line-height: var(--line-height-normal);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -207,67 +190,45 @@ const markAllRead = () => {
 }
 
 .unread-dot {
-  width: 10px;
-  height: 10px;
-  background: #f56c6c;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  background: var(--primary-500);
+  border-radius: var(--radius-full);
   position: absolute;
-  top: 16px;
-  right: 16px;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  text-align: center;
-}
-
-.empty-icon {
-  color: #cbd5e1;
-  margin-bottom: 24px;
-}
-
-.empty-text {
-  font-size: 18px;
-  font-weight: 600;
-  color: #64748b;
-  margin: 0 0 8px 0;
-}
-
-.empty-desc {
-  font-size: 14px;
-  color: #94a3b8;
-  margin: 0;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
 }
 
 @media (max-width: 768px) {
-  .notifications-header {
-    padding: 12px 16px;
+  .page-container {
+    padding: var(--spacing-lg);
   }
-  
+
+  .page-header {
+    margin: 0 calc(-1 * var(--spacing-lg));
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+
   .notifications-main {
-    padding: 16px;
+    margin-top: var(--spacing-lg);
   }
-  
+
   .notification-card {
-    padding: 12px;
-    gap: 12px;
+    padding: var(--spacing-md);
+    gap: var(--spacing-md);
   }
-  
+
   .notification-icon {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
   }
-  
+
   .notification-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
+    gap: var(--spacing-xs);
   }
-  
+
   .notification-time {
     margin-left: 0;
   }
