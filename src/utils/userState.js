@@ -1,24 +1,8 @@
-import { mockUserVips, mockVipLevels } from '../data/mockData'
+import { mockUserVips, mockVipLevels, mockVipPackages, getVipLevelNames, getVipLevelWeights } from '../data/mockData'
 
 const STORAGE_KEY_USER = 'user'
 const STORAGE_KEY_VIP = 'userVipInfo'
 const VIP_UPDATED_EVENT = 'vip-updated'
-
-const VIP_LEVEL_WEIGHTS = {
-  0: 0,
-  1: 1,
-  2: 2,
-  3: 3,
-  4: 4
-}
-
-const VIP_LEVEL_NAMES = {
-  0: '普通会员',
-  1: '银卡会员',
-  2: '金卡会员',
-  3: '钻石会员',
-  4: '黑钻会员'
-}
 
 const PROTECTED_LEVELS = [3, 4]
 
@@ -81,7 +65,8 @@ const validateAndFixVipData = (userVip) => {
 }
 
 export const getVipLevelWeight = (levelNum) => {
-  return VIP_LEVEL_WEIGHTS[levelNum] || 0
+  const weights = getVipLevelWeights()
+  return weights[levelNum] || 0
 }
 
 export const compareVipLevels = (levelA, levelB) => {
@@ -282,7 +267,8 @@ export const upgradeVip = (option, userId) => {
     
     if (!isHigherLevel(targetLevelNum, currentLevel)) {
       const currentLevelInfo = getVipLevelByLevel(currentLevel)
-      const currentLevelName = currentLevelInfo?.name || VIP_LEVEL_NAMES[currentLevel] || '会员'
+      const levelNames = getVipLevelNames()
+      const currentLevelName = currentLevelInfo?.name || levelNames[currentLevel] || '会员'
       
       if (targetLevelNum === currentLevel) {
         return {
@@ -371,7 +357,8 @@ export const canPurchaseVipOption = (option, userId) => {
   
   const currentLevel = userVip.level
   const currentLevelInfo = getVipLevelByLevel(currentLevel)
-  const currentLevelName = currentLevelInfo?.name || VIP_LEVEL_NAMES[currentLevel] || '会员'
+  const levelNames = getVipLevelNames()
+  const currentLevelName = currentLevelInfo?.name || levelNames[currentLevel] || '会员'
   
   if (isProtectedLevel(currentLevel)) {
     return {
@@ -389,7 +376,7 @@ export const canPurchaseVipOption = (option, userId) => {
   }
   
   if (compareVipLevels(targetLevelNum, currentLevel) < 0) {
-    const targetLevelName = targetLevelInfo.name || VIP_LEVEL_NAMES[targetLevelNum] || '会员'
+    const targetLevelName = targetLevelInfo.name || levelNames[targetLevelNum] || '会员'
     return {
       canPurchase: false,
       reason: `您当前已是${currentLevelName}，等级更高，无需购买${targetLevelName}`
@@ -518,4 +505,115 @@ export const extendVipDuration = (option, userId) => {
     vipInfo: userVip,
     message: `续费成功！会员有效期延长至${newEndTime.toLocaleDateString('zh-CN')}`
   }
+}
+
+// VIP排名系统
+export const getVipRanking = (userId) => {
+  const uid = userId || getCurrentUserId()
+  
+  const sortedUsers = [...mockUserVips].sort((a, b) => {
+    if (a.level !== b.level) {
+      return b.level - a.level
+    }
+    if (a.totalSpent !== b.totalSpent) {
+      return b.totalSpent - a.totalSpent
+    }
+    return (b.totalOrders || 0) - (a.totalOrders || 0)
+  })
+  
+  const userIndex = sortedUsers.findIndex(v => v.userId === uid)
+  
+  if (userIndex === -1) {
+    return {
+      rank: sortedUsers.length + 1,
+      totalUsers: sortedUsers.length,
+      rankPercentage: 100,
+      userLevel: 0,
+      userSpent: 0,
+      userOrders: 0
+    }
+  }
+  
+  const userVip = sortedUsers[userIndex]
+  
+  return {
+    rank: userIndex + 1,
+    totalUsers: sortedUsers.length,
+    rankPercentage: sortedUsers.length > 0 
+      ? Math.round(((userIndex + 1) / sortedUsers.length) * 100) 
+      : 100,
+    userLevel: userVip.level,
+    userSpent: userVip.totalSpent || 0,
+    userOrders: userVip.totalOrders || 0,
+    levelName: getVipLevelByLevel(userVip.level)?.name || '普通会员',
+    isTop10: userIndex < 10,
+    isTop50: userIndex < Math.ceil(sortedUsers.length * 0.5)
+  }
+}
+
+// 获取VIP排行榜
+export const getVipLeaderboard = (limit = 10) => {
+  const sortedUsers = [...mockUserVips].sort((a, b) => {
+    if (a.level !== b.level) {
+      return b.level - a.level
+    }
+    if (a.totalSpent !== b.totalSpent) {
+      return b.totalSpent - a.totalSpent
+    }
+    return (b.totalOrders || 0) - (a.totalOrders || 0)
+  })
+  
+  return sortedUsers.slice(0, limit).map((userVip, index) => {
+    const levelInfo = getVipLevelByLevel(userVip.level)
+    return {
+      rank: index + 1,
+      userId: userVip.userId,
+      level: userVip.level,
+      levelName: levelInfo?.name || '普通会员',
+      levelIcon: levelInfo?.icon || '👤',
+      levelColor: levelInfo?.color || '#94a3b8',
+      totalSpent: userVip.totalSpent || 0,
+      totalOrders: userVip.totalOrders || 0,
+      isActive: isVipActive(userVip)
+    }
+  })
+}
+
+// 获取可用的VIP套餐选项
+export const getAvailableVipPackages = (userId) => {
+  const uid = userId || getCurrentUserId()
+  const userVip = getUserVip(uid)
+  
+  if (!userVip) {
+    return mockVipPackages.filter(pkg => pkg.type === 'upgrade')
+  }
+  
+  const currentLevel = userVip.level
+  const isExpired = !isVipActive(userVip)
+  
+  let packages = []
+  
+  if (isExpired) {
+    const upgradePackages = mockVipPackages.filter(pkg => 
+      pkg.type === 'upgrade' && isHigherLevel(pkg.targetLevel, currentLevel)
+    )
+    const renewPackages = mockVipPackages.filter(pkg => 
+      pkg.type === 'renew' && pkg.targetLevel === currentLevel && currentLevel > 0
+    )
+    packages = [...renewPackages, ...upgradePackages]
+  } else {
+    if (currentLevel > 0 && !isProtectedLevel(currentLevel)) {
+      const renewPackages = mockVipPackages.filter(pkg => 
+        pkg.type === 'renew' && pkg.targetLevel === currentLevel
+      )
+      packages = [...packages, ...renewPackages]
+    }
+    
+    const upgradePackages = mockVipPackages.filter(pkg => 
+      pkg.type === 'upgrade' && isHigherLevel(pkg.targetLevel, currentLevel)
+    )
+    packages = [...packages, ...upgradePackages]
+  }
+  
+  return packages
 }
