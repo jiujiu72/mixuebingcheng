@@ -65,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, provide } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { 
@@ -79,6 +79,8 @@ const route = useRoute()
 const deliveryMan = ref(JSON.parse(localStorage.getItem('deliveryMan') || '{}'))
 const deliveryManName = computed(() => deliveryMan.value.name || '骑手')
 const isOnline = ref(deliveryMan.value.isOnline || 1)
+
+provide('isOnline', isOnline)
 
 const activeMenu = computed(() => {
   const path = route.path
