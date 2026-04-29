@@ -44,65 +44,46 @@
         </div>
 
         <div class="route-map">
-          <div class="route-overlay">
-            <svg viewBox="0 0 400 300" class="route-svg">
-              <defs>
-                <linearGradient :id="'routeGradient-' + currentPreference" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" :style="'stop-color:' + routeColors[0]" />
-                  <stop offset="100%" :style="'stop-color:' + routeColors[1]" />
-                </linearGradient>
-              </defs>
-              
-              <path
-                d="M 50 250 Q 100 200 150 220 T 250 150 T 350 80"
-                fill="none"
-                :stroke="'url(#routeGradient-' + currentPreference + ')'"
-                stroke-width="6"
-                stroke-linecap="round"
-                class="route-path"
-              />
-              
-              <circle cx="50" cy="250" r="8" fill="#10b981" class="start-point">
-                <animate attributeName="r" values="8;10;8" dur="1.5s" repeatCount="indefinite" />
-              </circle>
-              
-              <circle cx="350" cy="80" r="8" fill="#f97316" class="end-point" />
-              
-              <circle 
-                v-if="deliveryManPosition" 
-                :cx="deliveryManPosition.x" 
-                :cy="deliveryManPosition.y" 
-                r="10" 
-                :fill="routeColors[0]"
-                class="delivery-man-marker"
-              >
-                <animate attributeName="r" values="10;12;10" dur="1s" repeatCount="indefinite" />
-              </circle>
-            </svg>
-            
-            <div class="route-points">
-              <div class="point-info start">
-                <div class="point-dot start"></div>
-                <div class="point-content">
-                  <span class="point-label">取餐点</span>
-                  <span class="point-address">美味点餐总店</span>
-                </div>
-              </div>
-              
-              <div class="route-lines">
-                <div v-for="(turn, index) in turnByTurn" :key="index" class="turn-step">
-                  <span class="turn-icon">{{ turn.icon }}</span>
-                  <span class="turn-text">{{ turn.instruction }}</span>
-                </div>
-              </div>
-              
-              <div class="point-info end">
-                <div class="point-dot end"></div>
-                <div class="point-content">
-                  <span class="point-label">送达点</span>
-                  <span class="point-address">{{ order?.address }}</span>
-                </div>
-              </div>
+          <MapView
+            ref="mapViewRef"
+            :start-lat="shopLocation.lat"
+            :start-lng="shopLocation.lng"
+            :end-lat="deliveryLocation.lat"
+            :end-lng="deliveryLocation.lng"
+            :delivery-man-lat="deliveryManGeoPosition?.lat"
+            :delivery-man-lng="deliveryManGeoPosition?.lng"
+            :navigation-preference="navigationPreference"
+            :distance="distance"
+            :estimated-time="estimatedTime"
+            :show-info="false"
+            :show-controls="false"
+            :start-address="'美味点餐总店'"
+            :end-address="order?.address || ''"
+            :is-navigation-mode="navigationDialogVisible"
+          />
+        </div>
+
+        <div class="route-info">
+          <div class="point-info start">
+            <div class="point-dot start"></div>
+            <div class="point-content">
+              <span class="point-label">取餐点</span>
+              <span class="point-address">美味点餐总店</span>
+            </div>
+          </div>
+          
+          <div class="route-lines">
+            <div v-for="(turn, index) in turnByTurn" :key="index" class="turn-step">
+              <span class="turn-icon">{{ turn.icon }}</span>
+              <span class="turn-text">{{ turn.instruction }}</span>
+            </div>
+          </div>
+          
+          <div class="point-info end">
+            <div class="point-dot end"></div>
+            <div class="point-content">
+              <span class="point-label">送达点</span>
+              <span class="point-address">{{ order?.address }}</span>
             </div>
           </div>
         </div>
@@ -440,25 +421,22 @@
           </div>
           
           <div class="nav-map">
-            <svg viewBox="0 0 400 300" class="nav-svg">
-              <path
-                d="M 50 250 Q 100 200 150 220 T 250 150 T 350 80"
-                fill="none"
-                :stroke="routeColors[0]"
-                stroke-width="8"
-                stroke-linecap="round"
-                opacity="0.3"
-              />
-              <path
-                :d="currentPath"
-                fill="none"
-                :stroke="routeColors[0]"
-                stroke-width="8"
-                stroke-linecap="round"
-              />
-              <circle cx="50" cy="250" r="6" fill="#10b981" />
-              <circle cx="350" cy="80" r="6" fill="#f97316" />
-            </svg>
+            <MapView
+              :start-lat="shopLocation.lat"
+              :start-lng="shopLocation.lng"
+              :end-lat="deliveryLocation.lat"
+              :end-lng="deliveryLocation.lng"
+              :delivery-man-lat="deliveryManGeoPosition?.lat"
+              :delivery-man-lng="deliveryManGeoPosition?.lng"
+              :navigation-preference="navigationPreference"
+              :distance="distance"
+              :estimated-time="estimatedTime"
+              :show-info="false"
+              :show-controls="false"
+              :start-address="'美味点餐总店'"
+              :end-address="order?.address || ''"
+              :is-navigation-mode="true"
+            />
           </div>
           
           <div class="nav-steps">
@@ -515,13 +493,19 @@ import {
   calculateDeliveryFee,
   generateTurnByTurn,
   updateDeliveryManLocation,
-} from '../../utils/mapService'
+  getRouteFromAPI,
+  getCurrentPosition,
+  watchPosition,
+  clearWatch,
+} from '../../../utils/mapService'
 import { mockOrders, mockDeliveryMen } from '../../../data/mockData'
+import MapView from '../../../components/MapView.vue'
 
 const router = useRouter()
 const route = useRoute()
 
 const mapContainer = ref(null)
+const mapViewRef = ref(null)
 const photoInput = ref(null)
 const exceptionPhotoInput = ref(null)
 
@@ -550,8 +534,12 @@ const exceptionType = ref('')
 const exceptionDescription = ref('')
 
 const deliveryManPosition = ref(null)
+const deliveryManGeoPosition = ref(null)
+const shopLocation = ref({ ...MAP_CONFIG.SHOP_LOCATION })
+const deliveryLocation = ref({ ...MAP_CONFIG.SHOP_LOCATION })
 const positionInterval = ref(null)
 const navigationInterval = ref(null)
+const geoWatchId = ref(null)
 const currentStepIndex = ref(0)
 const currentSpeed = ref(0)
 
@@ -641,22 +629,22 @@ const loadOrderData = () => {
   initMap()
 }
 
-const initMap = () => {
+const initMap = async () => {
   if (!order.value) return
 
-  const shopCoords = MAP_CONFIG.SHOP_LOCATION
-  const deliveryCoords = getAddressCoordinates(order.value.address)
+  shopLocation.value = { ...MAP_CONFIG.SHOP_LOCATION }
+  deliveryLocation.value = getAddressCoordinates(order.value.address)
 
   distance.value = calculateDistance(
-    shopCoords.lat, shopCoords.lng,
-    deliveryCoords.lat, deliveryCoords.lng
+    shopLocation.value.lat, shopLocation.value.lng,
+    deliveryLocation.value.lat, deliveryLocation.value.lng
   )
 
   updateNavigation()
 
   routePoints.value = generateRoutePoints(
-    shopCoords.lat, shopCoords.lng,
-    deliveryCoords.lat, deliveryCoords.lng
+    shopLocation.value.lat, shopLocation.value.lng,
+    deliveryLocation.value.lat, deliveryLocation.value.lng
   )
 
   turnByTurn.value = generateTurnByTurn(
@@ -665,21 +653,112 @@ const initMap = () => {
     order.value.address
   )
 
-  deliveryManPosition.value = { x: 50, y: 250 }
+  deliveryManGeoPosition.value = {
+    lat: shopLocation.value.lat,
+    lng: shopLocation.value.lng
+  }
+
+  try {
+    const realRoute = await getRouteFromAPI(
+      shopLocation.value.lat, shopLocation.value.lng,
+      deliveryLocation.value.lat, deliveryLocation.value.lng,
+      navigationPreference.value
+    )
+
+    if (realRoute) {
+      distance.value = realRoute.distance / 1000
+      estimatedTime.value = Math.ceil(realRoute.duration / 60)
+
+      if (realRoute.steps && realRoute.steps.length > 0) {
+        const newTurnByTurn = [
+          {
+            type: 'start',
+            instruction: '从 美味点餐总店 出发',
+            icon: '📍',
+          }
+        ]
+
+        for (const step of realRoute.steps) {
+          if (step.maneuver && step.maneuver.instruction) {
+            const icon = getManeuverIcon(step.maneuver.type)
+            newTurnByTurn.push({
+              type: 'turn',
+              instruction: step.maneuver.instruction,
+              icon,
+              distance: step.distance,
+            })
+          }
+        }
+
+        newTurnByTurn.push({
+          type: 'end',
+          instruction: `到达目的地 ${order.value.address}`,
+          icon: '🏁',
+        })
+
+        turnByTurn.value = newTurnByTurn
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to get real route:', error)
+  }
 }
 
-const updateNavigation = () => {
+const getManeuverIcon = (type) => {
+  const iconMap = {
+    'turn': '↩️',
+    'turn-left': '↩️',
+    'turn-right': '↪️',
+    'turn-sharp-left': '↰',
+    'turn-sharp-right': '↱',
+    'turn-slight-left': '↖',
+    'turn-slight-right': '↗',
+    'uturn': '↺',
+    'uturn-left': '↺',
+    'uturn-right': '↻',
+    'merge': '↗',
+    'merge-left': '↖',
+    'merge-right': '↗',
+    'ramp-left': '↙',
+    'ramp-right': '↘',
+    'fork-left': '⤴',
+    'fork-right': '⤵',
+    'end-of-road': '⬅️',
+    'continue': '➡️',
+    'roundabout': '⭕',
+    'rotary': '⭕',
+    'roundabout-left': '⭕',
+    'roundabout-right': '⭕',
+    'exit-roundabout': '➡️',
+    'exit-rotary': '➡️',
+    'use-lane': '➡️',
+    'depart': '📍',
+    'arrive': '🏁',
+    'arrive-left': '🏁',
+    'arrive-right': '🏁',
+  }
+  return iconMap[type] || '➡️'
+}
+
+const updateNavigation = async () => {
   if (!order.value) return
 
-  const shopCoords = MAP_CONFIG.SHOP_LOCATION
-  const deliveryCoords = getAddressCoordinates(order.value.address)
-
-  distance.value = calculateDistance(
-    shopCoords.lat, shopCoords.lng,
-    deliveryCoords.lat, deliveryCoords.lng
-  )
-
   estimatedTime.value = calculateEstimatedTime(distance.value, navigationPreference.value)
+
+  try {
+    const realRoute = await getRouteFromAPI(
+      shopLocation.value.lat, shopLocation.value.lng,
+      deliveryLocation.value.lat, deliveryLocation.value.lng,
+      navigationPreference.value
+    )
+
+    if (realRoute) {
+      distance.value = realRoute.distance / 1000
+      estimatedTime.value = Math.ceil(realRoute.duration / 60)
+    }
+  } catch (error) {
+    console.warn('Failed to update route:', error)
+  }
 }
 
 const startNavigation = () => {
@@ -696,6 +775,7 @@ const startNavigation = () => {
   }, 5000)
 
   startPositionTracking()
+  startGeoTracking()
 }
 
 const stopNavigation = () => {
@@ -705,6 +785,7 @@ const stopNavigation = () => {
     navigationInterval.value = null
   }
   stopPositionTracking()
+  stopGeoTracking()
 }
 
 const startPositionTracking = () => {
@@ -712,9 +793,16 @@ const startPositionTracking = () => {
     if (deliveryMan.value) {
       await updateDeliveryManLocation(deliveryMan.value.id)
       
-      if (deliveryManPosition.value) {
-        deliveryManPosition.value.x += Math.random() * 30
-        deliveryManPosition.value.y -= Math.random() * 15
+      if (deliveryManGeoPosition.value) {
+        const progress = Math.min(1, (currentStepIndex.value + 1) / turnByTurn.value.length)
+        
+        deliveryManGeoPosition.value.lat = shopLocation.value.lat + 
+          (deliveryLocation.value.lat - shopLocation.value.lat) * progress +
+          (Math.random() - 0.5) * 0.002
+        
+        deliveryManGeoPosition.value.lng = shopLocation.value.lng + 
+          (deliveryLocation.value.lng - shopLocation.value.lng) * progress +
+          (Math.random() - 0.5) * 0.002
       }
     }
   }, 3000)
@@ -724,6 +812,33 @@ const stopPositionTracking = () => {
   if (positionInterval.value) {
     clearInterval(positionInterval.value)
     positionInterval.value = null
+  }
+}
+
+const startGeoTracking = () => {
+  geoWatchId.value = watchPosition(
+    (position) => {
+      if (position) {
+        deliveryManGeoPosition.value = {
+          lat: position.lat,
+          lng: position.lng
+        }
+        
+        if (position.speed !== null) {
+          currentSpeed.value = Math.round(position.speed * 3.6)
+        }
+      }
+    },
+    (error) => {
+      console.warn('Geolocation tracking error:', error)
+    }
+  )
+}
+
+const stopGeoTracking = () => {
+  if (geoWatchId.value !== null) {
+    clearWatch(geoWatchId.value)
+    geoWatchId.value = null
   }
 }
 
@@ -853,11 +968,11 @@ const handleReportException = async () => {
 
 onMounted(() => {
   loadOrderData()
-  startPositionTracking()
 })
 
 onUnmounted(() => {
   stopPositionTracking()
+  stopGeoTracking()
   if (navigationInterval.value) {
     clearInterval(navigationInterval.value)
   }
@@ -947,53 +1062,21 @@ onUnmounted(() => {
 }
 
 .route-map {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  height: 350px;
   border-radius: 12px;
-  padding: 16px;
+  overflow: hidden;
   margin-bottom: 16px;
+  background: #f0f0f0;
 }
 
-.route-overlay {
-  position: relative;
-  min-height: 300px;
-}
-
-.route-svg {
-  width: 100%;
-  height: 300px;
-}
-
-.route-path {
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-  animation: drawPath 2s ease-in-out forwards;
-}
-
-@keyframes drawPath {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.start-point,
-.end-point {
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
-}
-
-.delivery-man-marker {
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
-}
-
-.route-points {
+.route-info {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 16px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
 .point-info {
@@ -1492,12 +1575,10 @@ onUnmounted(() => {
 .nav-map {
   width: 100%;
   max-width: 400px;
+  height: 250px;
   margin-bottom: 24px;
-}
-
-.nav-svg {
-  width: 100%;
-  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .nav-steps {
