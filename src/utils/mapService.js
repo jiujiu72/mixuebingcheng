@@ -1,6 +1,8 @@
 const MAP_CONFIG = {
   SHOP_LOCATION: { lat: 39.9042, lng: 116.4074 },
   EARTH_RADIUS: 6371,
+  OSRM_BASE_URL: 'https://router.project-osrm.org',
+  NOMINATIM_BASE_URL: 'https://nominatim.openstreetmap.org',
 }
 
 const NAVIGATION_PREFERENCES = {
@@ -11,6 +13,7 @@ const NAVIGATION_PREFERENCES = {
     unit: 'km/h',
     color: '#10b981',
     routeColors: ['#10b981', '#059669'],
+    osrmProfile: 'bike'
   },
   DRIVING: {
     name: '驾车',
@@ -19,6 +22,7 @@ const NAVIGATION_PREFERENCES = {
     unit: 'km/h',
     color: '#6366f1',
     routeColors: ['#6366f1', '#4f46e5'],
+    osrmProfile: 'driving'
   },
   WALKING: {
     name: '步行',
@@ -27,6 +31,7 @@ const NAVIGATION_PREFERENCES = {
     unit: 'km/h',
     color: '#f59e0b',
     routeColors: ['#f59e0b', '#d97706'],
+    osrmProfile: 'foot'
   },
 }
 
@@ -181,6 +186,108 @@ function generateTurnByTurn(routePoints, startAddress, endAddress) {
   return turns
 }
 
+async function geocodeAddress(address) {
+  try {
+    const url = `${MAP_CONFIG.NOMINATIM_BASE_URL}/search?q=${encodeURIComponent(address)}&format=json&limit=1&countrycodes=cn`
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      console.warn('Geocoding API request failed')
+      return null
+    }
+    
+    const data = await response.json()
+    
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon),
+        displayName: data[0].display_name
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.warn('Failed to geocode address:', error)
+    return null
+  }
+}
+
+async function reverseGeocode(lat, lng) {
+  try {
+    const url = `${MAP_CONFIG.NOMINATIM_BASE_URL}/reverse?lat=${lat}&lon=${lng}&format=json`
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      console.warn('Reverse geocoding API request failed')
+      return null
+    }
+    
+    const data = await response.json()
+    
+    if (data && data.display_name) {
+      return {
+        displayName: data.display_name,
+        address: data.address
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.warn('Failed to reverse geocode:', error)
+    return null
+  }
+}
+
+async function getRouteFromAPI(startLat, startLng, endLat, endLng, preference = 'CYCLING') {
+  try {
+    const profile = NAVIGATION_PREFERENCES[preference]?.osrmProfile || 'bike'
+    const url = `${MAP_CONFIG.OSRM_BASE_URL}/route/v1/${profile}/${startLng},${startLat};${endLng},${endLat}?overview=full&geometries=geojson&steps=true&annotations=true`
+    
+    const response = await fetch(url)
+    
+    if (!response.ok) {
+      console.warn('OSRM API request failed')
+      return null
+    }
+    
+    const data = await response.json()
+    
+    if (data.routes && data.routes.length > 0) {
+      const route = data.routes[0]
+      const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]])
+      
+      const steps = []
+      if (route.legs && route.legs.length > 0) {
+        for (const leg of route.legs) {
+          if (leg.steps) {
+            for (const step of leg.steps) {
+              steps.push({
+                instruction: step.maneuver?.instruction || '继续行驶',
+                distance: step.distance,
+                duration: step.duration,
+                maneuver: step.maneuver
+              })
+            }
+          }
+        }
+      }
+      
+      return {
+        coordinates,
+        distance: route.distance,
+        duration: route.duration,
+        steps
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.warn('Failed to get route from API:', error)
+    return null
+  }
+}
+
 function updateDeliveryManLocation(deliveryManId) {
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -193,6 +300,74 @@ function updateDeliveryManLocation(deliveryManId) {
       resolve(dm)
     }, 100)
   })
+}
+
+async function getCurrentPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('浏览器不支持地理定位'))
+      return
+    }
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy
+        })
+      },
+      (error) => {
+        console.warn('Geolocation error:', error)
+        resolve(null)
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    )
+  })
+}
+
+function watchPosition(callback, errorCallback) {
+  if (!navigator.geolocation) {
+    if (errorCallback) {
+      errorCallback(new Error('浏览器不支持地理定位'))
+    }
+    return null
+  }
+  
+  return navigator.geolocation.watchPosition(
+    (position) => {
+      if (callback) {
+        callback({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          speed: position.coords.speed,
+          heading: position.coords.heading
+        })
+      }
+    },
+    (error) => {
+      console.warn('Watch position error:', error)
+      if (errorCallback) {
+        errorCallback(error)
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 5000,
+      maximumAge: 0
+    }
+  )
+}
+
+function clearWatch(watchId) {
+  if (navigator.geolocation && watchId) {
+    navigator.geolocation.clearWatch(watchId)
+  }
 }
 
 export {
@@ -209,4 +384,10 @@ export {
   calculateBearing,
   generateTurnByTurn,
   updateDeliveryManLocation,
+  geocodeAddress,
+  reverseGeocode,
+  getRouteFromAPI,
+  getCurrentPosition,
+  watchPosition,
+  clearWatch,
 }
